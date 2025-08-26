@@ -650,7 +650,7 @@ class ExtJSSeleniumHelper:
             print(f"等待元素可点击失败: {locator}, 错误: {e}")
             return False
 
-    def is_element_visible_and_enabled(self, locator, locator_type=By.CSS_SELECTOR, timeout=5):
+    def is_element_visible_and_enabled(self, locator, locator_type=By.XPATH, timeout=5):
         """
         检查元素是否可见且启用
         
@@ -677,7 +677,7 @@ class ExtJSSeleniumHelper:
             print(f"检查元素可见性和启用状态失败: {locator}, 错误: {e}")
             return False
 
-    def safe_click(self, locator, locator_type=By.CSS_SELECTOR, timeout=30, max_attempts=3):
+    def safe_click(self, locator, locator_type=By.XPATH, timeout=30, max_attempts=3):
         """
         安全点击元素，带有重试机制和可见性检查
         
@@ -718,9 +718,57 @@ class ExtJSSeleniumHelper:
         print(f"经过 {max_attempts} 次尝试后，安全点击元素失败: {locator}")
         return False
 
-    def safe_input(self, locator, text, locator_type=By.CSS_SELECTOR, timeout=30, clear_first=True, max_attempts=3):
+    # def safe_input(self, locator, text, locator_type=By.XPATH, timeout=30, clear_first=True, max_attempts=3):
+    #     """
+    #     安全输入文本，带有重试机制和可见性检查
+        
+    #     参数:
+    #     - locator: 元素定位器
+    #     - text: 要输入的文本
+    #     - locator_type: 定位器类型（默认为 CSS_SELECTOR）
+    #     - timeout: 每次尝试的超时时间（秒）
+    #     - clear_first: 是否先清空输入框
+    #     - max_attempts: 最大尝试次数
+        
+    #     返回:
+    #     - 成功返回 True，失败返回 False
+    #     """
+    #     for attempt in range(max_attempts):
+    #         try:
+    #             # 等待元素可见且可点击
+    #             element = WebDriverWait(self.driver, timeout).until(
+    #                 lambda driver: EC.visibility_of_element_located((locator_type, locator))(driver) and 
+    #                             EC.element_to_be_clickable((locator_type, locator))(driver)
+    #             )
+                
+    #             # 滚动到元素
+    #             self.driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", element)
+                
+    #             # 清空输入框（如果需要）
+    #             if clear_first:
+    #                 element.clear()
+                
+    #             # 输入文本
+    #             element.send_keys(text)
+    #             print(f"已安全输入文本: {locator}, 文本: {text} (尝试 {attempt + 1}/{max_attempts})")
+    #             return True
+                
+    #         except TimeoutException:
+    #             print(f"等待元素可见且可点击超时: {locator} (尝试 {attempt + 1}/{max_attempts})")
+    #         except Exception as e:
+    #             print(f"安全输入文本失败: {locator}, 错误: {e} (尝试 {attempt + 1}/{max_attempts})")
+            
+    #         # 如果不是最后一次尝试，等待一段时间后重试
+    #         if attempt < max_attempts - 1:
+    #             time.sleep(2)  # 等待2秒后重试
+        
+    #     print(f"经过 {max_attempts} 次尝试后，安全输入文本失败: {locator}")
+    #     return False
+
+    def safe_input(self, locator, text, locator_type=By.CSS_SELECTOR, timeout=30, 
+                clear_first=True, max_attempts=3, enter=False):
         """
-        安全输入文本，带有重试机制和可见性检查
+        安全输入文本，带有重试机制和可见性检查，支持回车键操作
         
         参数:
         - locator: 元素定位器
@@ -729,6 +777,7 @@ class ExtJSSeleniumHelper:
         - timeout: 每次尝试的超时时间（秒）
         - clear_first: 是否先清空输入框
         - max_attempts: 最大尝试次数
+        - enter: 是否在输入后按下回车键
         
         返回:
         - 成功返回 True，失败返回 False
@@ -750,7 +799,15 @@ class ExtJSSeleniumHelper:
                 
                 # 输入文本
                 element.send_keys(text)
-                print(f"已安全输入文本: {locator}, 文本: {text} (尝试 {attempt + 1}/{max_attempts})")
+                
+                # 如果需要按下回车键
+                if enter:
+                    from selenium.webdriver.common.keys import Keys
+                    element.send_keys(Keys.RETURN)
+                    print(f"已安全输入文本并按下回车键: {locator}, 文本: {text} (尝试 {attempt + 1}/{max_attempts})")
+                else:
+                    print(f"已安全输入文本: {locator}, 文本: {text} (尝试 {attempt + 1}/{max_attempts})")
+                    
                 return True
                 
             except TimeoutException:
@@ -765,7 +822,7 @@ class ExtJSSeleniumHelper:
         print(f"经过 {max_attempts} 次尝试后，安全输入文本失败: {locator}")
         return False
 
-    def is_element_in_viewport(self, locator, locator_type=By.CSS_SELECTOR, timeout=5):
+    def is_element_in_viewport(self, locator, locator_type=By.XPATH, timeout=5):
         """
         检查元素是否在视口内（可见且未被遮挡）
         
@@ -803,7 +860,7 @@ class ExtJSSeleniumHelper:
             print(f"检查元素是否在视口内失败: {locator}, 错误: {e}")
             return False
 
-    def ensure_element_visible(self, locator, locator_type=By.CSS_SELECTOR, timeout=30):
+    def ensure_element_visible(self, locator, locator_type=By.XPATH, timeout=30):
         """
         确保元素可见（如果不在视口内，则滚动到元素位置）
         

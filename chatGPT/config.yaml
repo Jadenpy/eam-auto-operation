@@ -1,0 +1,11 @@
+driver_path: "drives/msedgedriver.exe"
+base_url: "https://myeric.textron.com/"
+eam_menu_xpath: '//*[@id="MyTools"]/div/ul/li[7]/a'
+workorder_tab_xpath: '//*[@id="tab-1052"]'
+iframe_id: "uxtabiframe-1040-iframeEl"
+
+result_file: "eam_results.csv"
+log_file: "eam.log"
+
+max_submit_retries: 5
+wait_timeout: 10

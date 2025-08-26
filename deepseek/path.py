@@ -1,6 +1,9 @@
-
+from datetime import datetime
+TODAY = datetime.now().strftime("%Y-%m-%d")
 
 ERIC = "https://myeric.textron.com/"
+
+EDGE = r"C:\Users\jhu00\OneDrive - Textron\Documents\code\eam-auto-operation\drive files\msedgedriver.exe"
 
 # Selenium 4.3 模糊匹配 XPath 映射
 locators = {
@@ -9,9 +12,10 @@ locators = {
     'page_wo_tag': '//*[@id="tab-1052"]',               #别名：WO_TAG  HTML标签     动作：点击   切换FRAME
     'page_frame': "uxtabiframe-1040-iframeEl",           # BY.ID
     # =====工单列表获取======
-    'list_filter_date':'//*[@id="uxfilteroperator-1251"]',
-    'list_drop_down':'#menuitem-1256',                                    # By.CSS_SELECTOR,
-    'list_date_input': '#uxdate-1261-inputEl',                            # By.CSS_SELECTOR,
+    'list_date_filter_drop_button':'//*[@id="uxfilteroperator-1251"]',
+    'list_date_condition':'#menuitem-1256',                                    # By.CSS_SELECTOR,
+    'list_date_input': '#uxdate-1261-inputEl',                                 # By.CSS_SELECTOR,
+    'list_wo': '//*[@id="tableview-1103"]/div[3]//table[starts-with(@id, "tableview-1103-record-")]',                                 
     # ===== WO 信息读取 =====       r: read
     "wo_r_start_date": '//*[@id="uxdate-1412-inputEl"]',  
     "wo_r_end_date": '//*[@id="uxdate-1413-inputEl"]',
