@@ -15,6 +15,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException
 import yaml
+from webdriver_manager.microsoft import EdgeChromiumDriverManager
 
 # ========= 日志配置 =========
 logging.basicConfig(
@@ -30,7 +31,7 @@ logging.basicConfig(
 class SeleniumHelper:
     """通用 Selenium 操作类"""
 
-    def __init__(self, driver_path):
+    def __init__(self, driver_path=None):
         self.driver = self._create_driver(driver_path)
 
     def _create_driver(self, driver_path):
@@ -44,7 +45,11 @@ class SeleniumHelper:
         options.add_argument("--start-maximized")
         options.add_argument("--log-level=3")
         options.add_experimental_option("detach", True)
-        service = Service(executable_path=driver_path)
+        if driver_path:
+            service = Service(executable_path=driver_path)
+        # 使用 WebDriver Manager 自动管理驱动
+        else:
+            service = Service(EdgeChromiumDriverManager(url='https://registry.npmmirror.com/-/binary/edgedriver/').install())
         driver = webdriver.Edge(service=service, options=options)
         driver.set_page_load_timeout(300)
         driver.set_script_timeout(300)
@@ -318,6 +323,9 @@ class EAMAutomation(SeleniumHelper):
 
 
 if __name__ == "__main__":
-    cfg = Config("config.yaml")
-    bot = EAMAutomation(cfg)
-    bot.run()
+    # cfg = Config("config.yaml")
+    # bot = EAMAutomation(cfg)
+    # bot.run()
+    
+    baidu = SeleniumHelper()
+    baidu.open_url('www.baidu.com')
