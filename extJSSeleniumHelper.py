@@ -886,5 +886,5 @@ if __name__ == "__main__":
 
     finally:
         time.sleep(5)
-        eam_helper.quit()
+        eam_edge.quit()
         # pass
