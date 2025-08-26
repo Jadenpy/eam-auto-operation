@@ -1,13 +1,4 @@
 
-# main file
-# run script here 
-
-
-# import
-
-
-# code
-
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.edge.service import Service
