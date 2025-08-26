@@ -6,21 +6,51 @@ from webdriver_manager.microsoft import EdgeChromiumDriverManager
 from selenium.common.exceptions import TimeoutException
 import time
 import os
+from path import ERIC
 
 class ExtJSSeleniumHelper:
-    def __init__(self, headless=False):
+    def __init__(self,  headless=False, executable_path = None):
         self.driver = None
         self.headless = headless
+        self.executable_path = executable_path
         self.setup_driver()
     
     def setup_driver(self):
         """配置 Edge 浏览器驱动"""
+        options = self.get_optimized_options()
+        
+        if  self.executable_path is None:
+            # 使用 WebDriver Manager 自动管理驱动
+            service = Service(EdgeChromiumDriverManager().install())
+            self.driver = webdriver.Edge(service=service, options=options)
+        else:
+            # 验证路径是否存在
+            if not os.path.exists(self.executable_path):
+                print(f"错误: 驱动文件不存在于 {self.executable_path}")
+                print("请确保路径正确且文件存在")
+                return None
+            # 使用本地的驱动文件
+            service = Service(executable_path=self.executable_path)  # 如果 msedgedriver 在 PATH 中，无需指定路径
+            self.driver = webdriver.Edge(service=service, options=options)
+
+        # 设置超时时间（针对国外服务器，设置较长超时）
+        self.driver.set_page_load_timeout(300)  # 5分钟
+        self.driver.set_script_timeout(300)
+        # 慢速网络优化
+        self.optimize_for_slow_connection()
+        # 隐藏自动化特征
+        self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+    
+    def get_optimized_options(self):
+        """option 优化"""
         options = Options()
         
         # 基本配置
         options.add_argument('--disable-blink-features=AutomationControlled')
+        options.add_argument("--log-level=3")  # 设置日志级别
         options.add_experimental_option("excludeSwitches", ["enable-automation"])
         options.add_experimental_option('useAutomationExtension', False)
+        options.add_experimental_option("detach", True)  # 关键，设置浏览器关闭时不退出
         
         # 性能优化
         options.add_argument('--no-sandbox')
@@ -34,7 +64,13 @@ class ExtJSSeleniumHelper:
         # 禁用图片和CSS加载以加快速度
         prefs = {
             "profile.managed_default_content_settings.images": 2,
-            "profile.managed_default_content_settings.stylesheets": 2
+            "profile.managed_default_content_settings.stylesheets": 2,
+            "profile.managed_default_content_settings.javascript": 1,  # 允许JS（ExtJS需要）
+            "profile.managed_default_content_settings.flash": 2,
+            "profile.managed_default_content_settings.plugins": 2,
+            "profile.managed_default_content_settings.popups": 2,
+            "profile.managed_default_content_settings.geolocation": 2,
+            "profile.managed_default_content_settings.notifications": 2,
         }
         options.add_experimental_option("prefs", prefs)
         
@@ -42,17 +78,9 @@ class ExtJSSeleniumHelper:
         if self.headless:
             options.add_argument('--headless=new')
         
-        # 使用 WebDriver Manager 自动管理驱动
-        service = Service(EdgeChromiumDriverManager().install())
-        self.driver = webdriver.Edge(service=service, options=options)
-        
-        # 设置超时时间（针对国外服务器，设置较长超时）
-        self.driver.set_page_load_timeout(300)  # 5分钟
-        self.driver.set_script_timeout(300)
-        
-        # 隐藏自动化特征
-        self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-    
+        return options
+
+
     def load_extjs_page(self, url, max_retries=3, component_query=None):
         """
         加载 ExtJS 页面，带有重试机制和特殊等待
@@ -160,28 +188,11 @@ class ExtJSSeleniumHelper:
         self.driver.set_page_load_timeout(600)  # 10分钟
         self.driver.set_script_timeout(600)
         
-        # 禁用更多资源加载以加快速度
-        prefs = {
-            "profile.managed_default_content_settings.images": 2,
-            "profile.managed_default_content_settings.stylesheets": 2,
-            "profile.managed_default_content_settings.javascript": 1,  # 允许JS（ExtJS需要）
-            "profile.managed_default_content_settings.flash": 2,
-            "profile.managed_default_content_settings.plugins": 2,
-            "profile.managed_default_content_settings.popups": 2,
-            "profile.managed_default_content_settings.geolocation": 2,
-            "profile.managed_default_content_settings.notifications": 2,
-        }
-        self.driver.options.add_experimental_option("prefs", prefs)
-        
         # 启用网络缓存
         self.driver.execute_cdp_cmd('Network.setCacheDisabled', {'cacheDisabled': False})
         
         print("已针对慢速连接进行优化")
 
-    # 在 setup_driver 方法中调用
-    def setup_driver(self):
-        # ... 其他代码 ...
-        self.optimize_for_slow_connection()
 
     # 高级调试和错误处理
     def debug_extjs_state(self):
@@ -229,26 +240,30 @@ class ExtJSSeleniumHelper:
 
 # 使用示例
 if __name__ == "__main__":
-    helper = ExtJSSeleniumHelper(headless=False)  # 设置为 True 可启用无头模式
+    edge_driveFile_path = r"C:\Users\jhu00\OneDrive - Textron\Documents\code\eam-auto-operation\drive files\msedgedriver.exe"
+
+    eam_helper = ExtJSSeleniumHelper(headless=False,executable_path=edge_driveFile_path)  # 设置为 True 可启用无头模式
     
     try:
         # 加载页面并等待特定组件
-        success = helper.load_extjs_page(
-            "https://your-extjs-app.com", 
+        success = eam_helper.load_extjs_page(
+            ERIC, 
             max_retries=3,
-            component_query='grid[title="用户列表"]'  # 等待用户列表网格加载
+            # component_query='grid[title="用户列表"]'  # 等待用户列表网格加载
         )
         
         if success:
             # 页面加载成功，可以进行操作
             print("可以开始操作页面")
-            
+            """
             # 例如，获取网格的存储对象
-            store = helper.execute_extjs_method('grid[title="用户列表"]', 'getStore')
+            store = eam_helper.execute_extjs_method('grid[title="用户列表"]', 'getStore')
             if store:
                 print("成功获取存储对象")
                 
             # 这里可以添加更多的页面操作代码
-            
+            """
     finally:
-        helper.quit()
+        time.sleep(5)
+        eam_helper.quit()
+        # pass
