@@ -1,9 +1,41 @@
 from datetime import datetime
+import sys
+import os
+
 TODAY = datetime.now().strftime("%Y-%m-%d")
 
 ERIC = "https://myeric.textron.com/"
 
-EDGE = r"C:\Users\jhu00\OneDrive - Textron\Documents\code\eam-auto-operation\drive files\msedgedriver.exe"
+
+# 定义不同系统对应的WebDriver路径配置
+# 键：系统标识（sys.platform返回值），值：(基础路径, 文件名)
+base_path = os.path.dirname(os.path.abspath(__file__));
+
+driver_config = {
+    "win32": (  # Windows系统
+        base_path,  # Windows下的基础目录（注意转义\）
+        "drive files\\msedgedriver.exe"
+    ),
+    "darwin": (  # macOS系统
+        base_path,  # macOS下的基础目录
+        "drive files/edgedriver_mac64_m1/msedgedriver"
+    ),
+    # 可扩展Linux："linux": ("/usr/local/bin", "chromedriver")
+}
+
+# 获取当前系统标识
+current_platform = sys.platform
+
+
+
+# 提取当前系统的基础路径和文件名
+base_path, file_name = driver_config[current_platform]
+
+# 拼接完整路径（自动适配系统分隔符）
+EDGE = os.path.join(base_path, file_name)
+
+print(EDGE)
+
 
 # Selenium 4.3 模糊匹配 XPath 映射
 locators = {
