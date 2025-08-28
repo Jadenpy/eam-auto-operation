@@ -7,20 +7,18 @@ TODAY = datetime.now().strftime("%Y-%m-%d")
 ERIC = "https://myeric.textron.com/"
 
 
+page_title = {
+    "eric": 'ERIC - Home',
+    'eam': 'HxGN EAM - Start Center',
+}
+
+
 # 定义不同系统对应的WebDriver路径配置
 # 键：系统标识（sys.platform返回值），值：(基础路径, 文件名)
-base_path = os.path.dirname(os.path.abspath(__file__));
 
 driver_config = {
-    "win32": (  # Windows系统
-        base_path,  # Windows下的基础目录（注意转义\）
-        "drive files\\msedgedriver.exe"
-    ),
-    "darwin": (  # macOS系统
-        base_path,  # macOS下的基础目录
-        "drive files/edgedriver_mac64_m1/msedgedriver"
-    ),
-    # 可扩展Linux："linux": ("/usr/local/bin", "chromedriver")
+    "win32": r'C:\Users\jhu00\OneDrive - Textron\Documents\code\eam-auto-operation\drive files\msedgedriver.exe',
+    "darwin": '',
 }
 
 # 获取当前系统标识
@@ -28,13 +26,13 @@ current_platform = sys.platform
 
 
 
-# 提取当前系统的基础路径和文件名
-base_path, file_name = driver_config[current_platform]
 
-# 拼接完整路径（自动适配系统分隔符）
-EDGE = os.path.join(base_path, file_name)
+EDGE = driver_config[current_platform]
 
-print(EDGE)
+
+
+
+
 
 
 # Selenium 4.3 模糊匹配 XPath 映射
@@ -42,7 +40,7 @@ locators = {
     # ======页面获取=========
     'page_eam': '//*[@id="MyTools"]/div/ul/li[7]/a',    #别名：EAM  HTML标签：a-tag     动作：点击ERIC主页上的该链接    切换新的标签页    
     'page_wo_tag': '//*[@id="tab-1052"]',               #别名：WO_TAG  HTML标签     动作：点击   切换FRAME
-    'page_frame': "uxtabiframe-1040-iframeEl",           # BY.ID
+    'page_iframe': "uxtabiframe-1040-iframeEl",           # BY.ID
     # =====工单列表获取======
     'list_date_filter_drop_button':'//*[@id="uxfilteroperator-1251"]',
     'list_date_condition':'#menuitem-1256',                                    # By.CSS_SELECTOR,
@@ -70,3 +68,8 @@ locators = {
     "wo_c_dropdown": "(//*[starts-with(@id, 'uxcombobox-') and substring(@id, string-length(@id) - string-length('-trigger-picker') +1) = '-trigger-picker'])[5]",
     "wo_r_activity": "(//input[starts-with(@id, 'uxcombobox-') and substring(@id, string-length(@id)-6)='inputEl'])[9]",    
 }
+
+
+if __name__ == '__main__':
+
+    print(EDGE)

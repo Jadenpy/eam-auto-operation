@@ -1,12 +1,10 @@
 # 验证extJSSeleniumHelper的功能是否可行
 from extJSSeleniumHelper import ExtJSSeleniumHelper
-from path import ERIC, EDGE, locators,TODAY
+from path import ERIC, EDGE, locators,TODAY,page_title
 from selenium.webdriver.common.by import By
 import time
 
-
-
-if __name__ == '__main__':
+def eam_auto():
     # 1. 配置selenium
     mySite = ExtJSSeleniumHelper(executable_path=EDGE)
 
@@ -17,11 +15,12 @@ if __name__ == '__main__':
 
     else:
         print('eric的首页加载失败')
-
+    
     # 3. EAM link
     mySite.ensure_element_visible(locators['page_eam'])
     mySite.safe_click(locators['page_eam'])
-    mySite.switch_to_new_tab()
+
+    mySite.switch_to_new_tab(page_title['eam'])
     
     # 4. WO Tab
     mySite.ensure_element_visible(locators['page_wo_tag'])
@@ -35,16 +34,21 @@ if __name__ == '__main__':
     mySite.ensure_element_visible(locators['list_date_filter_drop_button'])
     mySite.safe_click(locators['list_date_filter_drop_button'])
     # 6.2 日期比较条件  <=
-    mySite.ensure_element_visible(locators['list_date_condition'])
-    mySite.safe_click(locators['list_date_condition'])   
+    mySite.ensure_element_visible(locators['list_date_condition'],By.CSS_SELECTOR)
+    mySite.safe_click(locators['list_date_condition'],By.CSS_SELECTOR)   
     # 6.3 日期输入
-    mySite.ensure_element_visible(locators['list_date_input'])
-    mySite.safe_input(locators['list_date_input'],TODAY,enter=True)
+    mySite.ensure_element_visible(locators['list_date_input'],By.CSS_SELECTOR)
+    mySite.safe_input(locators['list_date_input'],TODAY,By.CSS_SELECTOR,enter=True)
 
     # 等待运算完成
     time.sleep(2)
 
     # 7. 工单列表
     # mySite.
+
+if __name__ == '__main__':
+
+    eam_auto()
+    
     
 

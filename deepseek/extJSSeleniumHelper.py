@@ -15,6 +15,7 @@ from path import ERIC
 from path import locators
 
 class ExtJSSeleniumHelper:
+    
     def __init__(self,  headless=False, executable_path = None):
         self.driver = None
         self.headless = headless
@@ -59,9 +60,9 @@ class ExtJSSeleniumHelper:
         options.add_experimental_option("detach", True)  # 关键，设置浏览器关闭时不退出
         
         # 性能优化
-        options.add_argument('--no-sandbox')
-        options.add_argument('--disable-dev-shm-usage')
-        options.add_argument('--disable-gpu')
+        # options.add_argument('--no-sandbox')
+        # options.add_argument('--disable-dev-shm-usage')
+        # options.add_argument('--disable-gpu')
         
         # 网络优化
         options.add_argument('--ignore-certificate-errors')
@@ -283,7 +284,7 @@ class ExtJSSeleniumHelper:
             return self.switch_to_new_tab(original_handles, timeout)
 
     # 标签操作
-    def switch_to_new_tab(self, original_handles=None, timeout=30):
+    def switch_to_new_tab(self,page_title, timeout=120):
         """
         切换到最新打开的标签页
         
@@ -294,39 +295,30 @@ class ExtJSSeleniumHelper:
         返回:
         - 新标签页的句柄，如果失败则返回 None
         """
-        if original_handles is None:
-            original_handles = self.driver.window_handles
-        
-        # 等待新标签页打开
-        try:
-            WebDriverWait(self.driver, timeout).until(
-                lambda d: len(d.window_handles) > len(original_handles)
-            )
-        except TimeoutException:
-            print(f"在 {timeout} 秒内未检测到新标签页打开")
-            return None
-        
-        # 获取所有窗口句柄
-        all_handles = self.driver.window_handles
-        
-        # 找出新打开的标签页（最后一个通常是新打开的）
-        new_handles = [handle for handle in all_handles if handle not in original_handles]
-        
-        if not new_handles:
-            print("未找到新标签页")
-            return None
-        
-        # 切换到新标签页
-        new_handle = new_handles[-1]  # 通常最新打开的是最后一个
-        
-        try:
-            self.driver.switch_to.window(new_handle)
-            print(f"已切换到新标签页: {new_handle}")
-            return new_handle
-        except NoSuchWindowException:
-            print(f"无法切换到标签页 {new_handle}，可能已关闭")
-            return None
-    
+        # 设置等待
+        wait = WebDriverWait(self.driver, timeout)
+
+        # 存储原始窗口的 ID
+        original_window = self.driver.current_window_handle
+
+        # # 检查一下，我们还没有打开其他的窗口
+        # assert len(self.driver.window_handles) == 1
+
+        # 单击在新窗口中打开的链接
+        # self.driver.find_element(By.XPATH, "new window").click()
+
+        # 等待新窗口或标签页
+        wait.until(EC.number_of_windows_to_be(2))
+
+        # 循环执行，直到找到一个新的窗口句柄
+        for window_handle in self.driver.window_handles:
+            if window_handle != original_window:
+                self.driver.switch_to.window(window_handle)
+                break
+
+        # 等待新标签页完成加载内容
+        wait.until(EC.title_is(page_title))
+        print(f'{page_title}已经切换并载入')
     def switch_to_original_tab(self):
         """
         切换回原始标签页
@@ -702,9 +694,10 @@ class ExtJSSeleniumHelper:
                 self.driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", element)
                 
                 # 点击元素
-                element.click()
-                print(f"已安全点击元素: {locator} (尝试 {attempt + 1}/{max_attempts})")
-                return True
+                if self.is_mask_go_away():
+                    element.click()
+                    print(f"已安全点击元素: {locator} (尝试 {attempt + 1}/{max_attempts})")
+                    return True
                 
             except TimeoutException:
                 print(f"等待元素可见且可点击超时: {locator} (尝试 {attempt + 1}/{max_attempts})")
@@ -900,7 +893,7 @@ class ExtJSSeleniumHelper:
             WebDriverWait(self.driver, timeout).until(
                 EC.visibility_of(element)
             )
-            
+            # TODO  在此处增加遮蔽消除
             return True
         except TimeoutException:
             print(f"等待元素存在或可见超时: {locator}")
@@ -908,7 +901,19 @@ class ExtJSSeleniumHelper:
         except Exception as e:
             print(f"确保元素可见失败: {locator}, 错误: {e}")
             return False
+        
 
+    def is_mask_go_away(self):  
+        # 等待遮罩层消失（最多等10秒）
+        try:
+            # 定位遮罩层（根据实际class或id调整）
+            WebDriverWait(self.driver, 10).until(
+                EC.invisibility_of_element_located((By.CLASS_NAME, "x-mask"))
+            )
+            print("遮罩层已消失")
+            return True
+        except TimeoutException:
+            print("超时：遮罩层未消失")
 
 # 使用示例
 if __name__ == "__main__":
