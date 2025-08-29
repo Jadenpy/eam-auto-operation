@@ -4,8 +4,10 @@ from selenium.webdriver.edge.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchWindowException
+
 import time
 
 import time
@@ -536,7 +538,7 @@ class ExtJSSeleniumHelper:
                 self.driver.switch_to.window(original_handle)
 
     # 元素操作
-    def find_visible_element(self, locator, locator_type=By.CSS_SELECTOR, timeout=30, poll_frequency=0.5):
+    def find_visible_element(self, locator, locator_type=By.XPATH, timeout=30, poll_frequency=0.5):
         """
         查找可见元素（带等待）
         
@@ -564,7 +566,7 @@ class ExtJSSeleniumHelper:
             print(f"查找可见元素失败: {locator}, 错误: {e}")
             return None
 
-    def find_clickable_element(self, locator, locator_type=By.CSS_SELECTOR, timeout=30, poll_frequency=0.5):
+    def find_clickable_element(self, locator, locator_type=By.XPATH, timeout=30, poll_frequency=0.5):
         """
         查找可点击元素（带等待）
         
@@ -592,7 +594,7 @@ class ExtJSSeleniumHelper:
             print(f"查找可点击元素失败: {locator}, 错误: {e}")
             return None
 
-    def wait_for_element_visible(self, locator, locator_type=By.CSS_SELECTOR, timeout=30):
+    def wait_for_element_visible(self, locator, locator_type=By.XPATH, timeout=30):
         """
         等待元素可见
         
@@ -617,7 +619,7 @@ class ExtJSSeleniumHelper:
             print(f"等待元素可见失败: {locator}, 错误: {e}")
             return False
 
-    def wait_for_element_clickable(self, locator, locator_type=By.CSS_SELECTOR, timeout=30):
+    def wait_for_element_clickable(self, locator, locator_type=By.XPATH, timeout=30):
         """
         等待元素可点击
         
@@ -695,7 +697,8 @@ class ExtJSSeleniumHelper:
                 
                 # 点击元素
                 if self.is_mask_go_away():
-                    element.click()
+                    # element.click()
+                    self.driver.execute_script("arguments[0].click();", element)
                     print(f"已安全点击元素: {locator} (尝试 {attempt + 1}/{max_attempts})")
                     return True
                 
@@ -758,7 +761,7 @@ class ExtJSSeleniumHelper:
     #     print(f"经过 {max_attempts} 次尝试后，安全输入文本失败: {locator}")
     #     return False
 
-    def safe_input(self, locator, text, locator_type=By.CSS_SELECTOR, timeout=30, 
+    def safe_input(self, locator, text, locator_type=By.XPATH, timeout=30, 
                 clear_first=True, max_attempts=3, enter=False):
         """
         安全输入文本，带有重试机制和可见性检查，支持回车键操作
@@ -914,6 +917,35 @@ class ExtJSSeleniumHelper:
             return True
         except TimeoutException:
             print("超时：遮罩层未消失")
+
+    def double_click(self,element):
+        ActionChains(self.driver).double_click(element).perform()
+
+    def get_elements(self, locator, locator_type=By.XPATH):
+        """
+
+        查找一组元素（带等待）
+        
+        参数:
+        - locator: 元素定位器
+        - locator_type: 定位器类型（默认为 XPATH）
+        - timeout: 超时时间（秒）
+        - poll_frequency: 轮询频率（秒）
+        
+        返回:
+        - 找到的可见元素列表，如果失败则返回 None
+        """
+        try:
+
+            elements = self.driver.find_elements(by=locator_type,value=locator)
+            
+            print(f"找到可见元素: {locator}")
+            return elements
+        
+        except Exception as e:
+            print(f"查找可见元素失败: {locator}, 错误: {e}")
+            return None
+
 
 # 使用示例
 if __name__ == "__main__":
