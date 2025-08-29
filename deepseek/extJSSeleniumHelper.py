@@ -557,7 +557,7 @@ class ExtJSSeleniumHelper:
             ).until(
                 EC.visibility_of_element_located((locator_type, locator))
             )
-            print(f"找到可见元素: {locator}")
+            # print(f"找到可见元素: {locator}")
             return element
         except TimeoutException:
             print(f"等待元素可见超时: {locator}")
@@ -585,7 +585,7 @@ class ExtJSSeleniumHelper:
             ).until(
                 EC.element_to_be_clickable((locator_type, locator))
             )
-            print(f"找到可点击元素: {locator}")
+            # print(f"找到可点击元素: {locator}")
             return element
         except TimeoutException:
             print(f"等待元素可点击超时: {locator}")
@@ -635,7 +635,7 @@ class ExtJSSeleniumHelper:
             WebDriverWait(self.driver, timeout).until(
                 EC.element_to_be_clickable((locator_type, locator))
             )
-            print(f"元素已可点击: {locator}")
+            # print(f"元素已可点击: {locator}")
             return True
         except TimeoutException:
             print(f"等待元素可点击超时: {locator}")
@@ -662,7 +662,7 @@ class ExtJSSeleniumHelper:
             )
             enabled = element.is_enabled()
             result = enabled and element.is_displayed()
-            print(f"元素可见且启用: {locator}, 结果: {result}")
+            # print(f"元素可见且启用: {locator}, 结果: {result}")
             return result
         except TimeoutException:
             print(f"元素不可见或未启用: {locator}")
@@ -696,11 +696,11 @@ class ExtJSSeleniumHelper:
                 self.driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", element)
                 
                 # 点击元素
-                if self.is_mask_go_away():
+                # if self.is_mask_go_away():
                     # element.click()
-                    self.driver.execute_script("arguments[0].click();", element)
-                    print(f"已安全点击元素: {locator} (尝试 {attempt + 1}/{max_attempts})")
-                    return True
+                self.driver.execute_script("arguments[0].click();", element)
+                # print(f"已安全点击元素: {locator} (尝试 {attempt + 1}/{max_attempts})")
+                return True
                 
             except TimeoutException:
                 print(f"等待元素可见且可点击超时: {locator} (尝试 {attempt + 1}/{max_attempts})")
@@ -800,7 +800,7 @@ class ExtJSSeleniumHelper:
                 if enter:
                     from selenium.webdriver.common.keys import Keys
                     element.send_keys(Keys.RETURN)
-                    print(f"已安全输入文本并按下回车键: {locator}, 文本: {text} (尝试 {attempt + 1}/{max_attempts})")
+                    # print(f"已安全输入文本并按下回车键: {locator}, 文本: {text} (尝试 {attempt + 1}/{max_attempts})")
                 else:
                     print(f"已安全输入文本: {locator}, 文本: {text} (尝试 {attempt + 1}/{max_attempts})")
                     
@@ -847,7 +847,7 @@ class ExtJSSeleniumHelper:
                 );
             """, element)
             
-            print(f"元素在视口内: {locator}, 结果: {in_viewport}")
+            # print(f"元素在视口内: {locator}, 结果: {in_viewport}")
             return in_viewport
         except TimeoutException:
             print(f"等待元素存在超时: {locator}")
@@ -888,10 +888,10 @@ class ExtJSSeleniumHelper:
             # 如果不在视口内，滚动到元素位置
             if not in_viewport:
                 self.driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", element)
-                print(f"已滚动元素到视口内: {locator}")
+                # print(f"已滚动元素到视口内: {locator}")
             else:
-                print(f"元素已在视口内: {locator}")
-            
+                # print(f"元素已在视口内: {locator}")
+                pass
             # 等待元素可见
             WebDriverWait(self.driver, timeout).until(
                 EC.visibility_of(element)
@@ -913,7 +913,7 @@ class ExtJSSeleniumHelper:
             WebDriverWait(self.driver, 10).until(
                 EC.invisibility_of_element_located((By.CLASS_NAME, "x-mask"))
             )
-            print("遮罩层已消失")
+            # print("遮罩层已消失")
             return True
         except TimeoutException:
             print("超时：遮罩层未消失")
@@ -939,7 +939,7 @@ class ExtJSSeleniumHelper:
 
             elements = self.driver.find_elements(by=locator_type,value=locator)
             
-            print(f"找到可见元素: {locator}")
+            # print(f"找到可见元素: {locator}")
             return elements
         
         except Exception as e:

@@ -67,11 +67,69 @@ def eam_auto():
             # get value
             estimated_hours = mySite.find_clickable_element(locators["wo_r_estimated_hours"]).get_attribute('value')
 
+
+            # book labor  
+            mySite.safe_click(locators["wo_c_book_labor"])
+            
+
+            
+            # panel
+            if mySite.wait_for_element_clickable(locators["wo_r_panel"]):
+
+                panel = mySite.find_clickable_element(locators["wo_r_panel"])
+                # 是否activity 有值
+                activity = panel.find_element(By.XPATH,locators["wo_r_activity"])
+                activity_value = activity.get_attribute('value').strip()
+                if not activity_value:
+                    activity.clear()
+                    activity.send_keys('10 - DEFAULT / ALL TRADES')   
+
+                # fill in
+
+                if mySite.wait_for_element_clickable(locators["wo_w_employee"]):
+                    mySite.safe_input(locators["wo_w_employee"],person)
+                print(f'计划工时为：{estimated_hours}')
+                if estimated_hours == '':
+                    estimated_hours = '0.5'
+                work_hour = str(int((float(estimated_hours) / 2)))
+
+                if mySite.wait_for_element_clickable(locators["wo_w_hours_worked"]):
+                    mySite.safe_input(locators["wo_w_hours_worked"],work_hour)
+
+                if mySite.wait_for_element_clickable(locators["wo_w_date_worked"]):
+                    mySite.safe_input(locators["wo_w_date_worked"],start_date)
+
+
+                # form save
+                if mySite.wait_for_element_clickable(locators["wo_c_submit"]):
+                   mySite.safe_click(locators["wo_c_submit"])
+
+                # record save
+                if mySite.wait_for_element_clickable(locators["wo_c_record_save"]):
+                   mySite.safe_click(locators["wo_c_record_save"])
+
+                # go back record view tab
+                if mySite.wait_for_element_clickable(locators["wo_c_record_view"]):
+                   mySite.safe_click(locators["wo_c_record_view"])
+
+                # update status
+
+                if mySite.wait_for_element_clickable(locators["wo_r_status"]):
+                   mySite.safe_input(locators["wo_r_status"],'Completed')
+
+                # final save
+                if mySite.wait_for_element_clickable(locators["wo_c_record_save"]):
+                   mySite.safe_click(locators["wo_c_record_save"])
+                
+            else:
+                print('没有找到panel')
+
+
             # double click side bar
             side_bar = mySite.find_clickable_element(locators["wo_c_slide_bar"])
             mySite.double_click(side_bar)
 
-            # 供测试遍历工单 print(f'工单{index}: 开始日期：{start_date}，截止日期：{end_date}，所属人员：{person}，状态：{status}，计划工时：{estimated_hours}')
+            
 
             
 
