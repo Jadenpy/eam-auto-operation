@@ -69,6 +69,11 @@ def timer(func):
 def my_sleep():
     time.sleep(1)
 
+if __name__ == '__main__':
+
+    from typing import TypeVar
+
+   
 
 
-my_sleep()
+    my_sleep()
