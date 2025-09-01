@@ -6,10 +6,10 @@ from webdriver_manager.microsoft import EdgeChromiumDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchWindowException,NoSuchElementException
+from selenium.common.exceptions import TimeoutException, NoSuchWindowException,NoSuchElementException,WebDriverException
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.common.keys import Keys
-
+from typing import Optional,Union
 import time
 
 import time
@@ -20,9 +20,9 @@ from path import locators
 
 class ExtJSSeleniumHelper:
 
-    LONG = 30
-    MIDDLE = 10
-    SHORT = 3
+    LONG = 130
+    MIDDLE = 70
+    SHORT = 30
     
     def __init__(self,  headless=False, executable_path = None):
         self.driver = None
@@ -114,21 +114,64 @@ class ExtJSSeleniumHelper:
         
         print("已针对慢速连接进行优化")
 
-  
-
-
-
-    def _wait(self, overtime = SHORT ):
-        return WebDriverWait(self.driver,overtime)
-
-    def _is_element_exist(self,value,by=By.XPATH) -> WebElement:
+    def switch_to_iframe(self, frame_reference, timeout=30):
+        """
+        切换到指定的 iframe
+        
+        参数:
+        - frame_reference: 可以是 iframe 的 ID、name、索引或 WebElement 对象
+        - timeout: 等待 iframe 可用的超时时间（秒）
+        
+        返回:
+        - 成功返回 True，失败返回 False
+        """
         try:
+            # 等待 iframe 可用并切换到它
+            WebDriverWait(self.driver, timeout).until(
+                EC.frame_to_be_available_and_switch_to_it(frame_reference)
+            )
+            print(f"已切换到 iframe: {frame_reference}")
+            return True
+        except TimeoutException:
+            print(f"等待 iframe {frame_reference} 超时")
+            return False
+        except Exception as e:
+            print(f"切换到 iframe 失败: {e}")
+            return False
+
+
+
+
+    def _wait(self, overtime=LONG ,ignored_exceptions:WebDriverException=None) ->WebDriverWait:
+        """
+        定义显示等待
+        参数：
+            overtime: 超时时间设置值， 默认为LONG.
+        返回：
+            WebDriverWait的实例
+        """
+        return WebDriverWait(self.driver,overtime,ignored_exceptions)
+
+    def _is_element_exist(self,value,by=By.XPATH) -> Union[WebElement,bool]:
+        """
+        判断元素是否存在？
+        参数：
+        value: 元素的定位值;
+        by:    元素的定位方式， 默认XPATH;
+        返回：
+        如果元素存在，则返回元素，否则为False。
+        """
+        try:
+            print('检查元素是否存在...')
             return self.driver.find_element(by,value)
         except NoSuchElementException:
             return False 
         
 
-    def _getting_element_into_view(self, elem:WebElement):
+    def _is_element_into_view(self, elem:WebElement) ->bool:
+        """
+        执行脚本，让元素进入视角。
+        """
         self.driver.execute_script("""
             arguments[0].scrollIntoView({
                 block: 'center',  // 垂直居中
@@ -136,8 +179,25 @@ class ExtJSSeleniumHelper:
                 behavior: 'smooth'// 平滑滚动（避免滚动过快导致的元素状态不稳定）
             });
         """, elem)
+        is_in_viewport = self.driver.execute_script("""
+            var rect = arguments[0].getBoundingClientRect();
+            return (
+                rect.top >= 0 &&
+                rect.left >= 0 &&
+                rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+                rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+            );
+        """, elem)
+        if is_in_viewport:
+            return True
+        print('元素不在视角中...')
+        return False
 
-    def _is_element_blocked(self,elem):
+
+    def _is_element_blocked(self,elem:WebElement) -> bool:
+        """
+        执行脚本，检查元素是否被遮蔽
+        """
         
         is_not_blocked = self.driver.execute_script("""
             var elem = arguments[0];
@@ -148,15 +208,18 @@ class ExtJSSeleniumHelper:
             // 遮挡会导致文本渲染不完整，需确保顶层元素是当前元素或其后代
             return elem.contains(topElem);
         """, elem)
-        if not is_not_blocked:
-            return False
+        if is_not_blocked:
+            return True
+        print('元素被遮挡,调整中...')
+        return False
 
-    def _element_ensure_clickable(self, value, by=By.XPATH):
+    def _element_ensure_clickable(self, value:str, by=By.XPATH) -> Optional[Union[bool,WebElement]]:
         """内部条件函数：校验元素是否满足所有可点击条件"""
         # ---------------------- 1. 校验1：元素存在于DOM中（避免NoSuchElementException） ----------------------
         
-        elem = self._is_element_exist(value)
         
+        wait = self._wait(ignored_exceptions=NoSuchElementException)
+        elem = wait.until(lambda x: self._is_element_exist(value,by))
 
         # ---------------------- 2. 校验2：元素未被禁用（排除disabled属性和禁用类） ----------------------
         # 场景1：原生disabled属性（如<button disabled>、<input disabled>）
@@ -169,27 +232,8 @@ class ExtJSSeleniumHelper:
             return False
 
         # ---------------------- 3. 校验3：元素在视图内（不可见则自动滚动） ----------------------
-        # 用JS将元素滚动到视图中心（避免“元素存在但在屏幕外”导致的点击失败）
-        self.driver.execute_script("""
-            arguments[0].scrollIntoView({
-                block: 'center',  // 垂直居中
-                inline: 'nearest',// 水平最近
-                behavior: 'smooth'// 平滑滚动（避免滚动过快导致的元素状态不稳定）
-            });
-        """, elem)
-        # 校验元素是否在视口内（避免滚动后仍未完全显示）
-        is_in_viewport = self.driver.execute_script("""
-            var rect = arguments[0].getBoundingClientRect();
-            return (
-                rect.top >= 0 &&
-                rect.left >= 0 &&
-                rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-                rect.right <= (window.innerWidth || document.documentElement.clientWidth)
-            );
-        """, elem)
-        if not is_in_viewport:
-            return False
-
+        self._is_element_into_view(elem)
+      
         # ---------------------- 4. 校验4：元素完全可见（排除隐藏样式） ----------------------
         # is_displayed()是Selenium原生方法，能识别display: none、visibility: hidden等隐藏逻辑
         if not elem.is_displayed():
@@ -197,19 +241,7 @@ class ExtJSSeleniumHelper:
 
         # ---------------------- 5. 校验5：无遮挡元素（排除浮层、遮罩等干扰） ----------------------
         # 用JS获取元素中心点的“顶层元素”，判断是否为当前元素或其后代（避免被其他元素覆盖）
-        is_not_blocked = self.driver.execute_script("""
-            var elem = arguments[0];
-            var rect = elem.getBoundingClientRect();
-            // 元素中心点坐标
-            var centerX = rect.left + rect.width / 2;
-            var centerY = rect.top + rect.height / 2;
-            // 获取中心点的顶层元素
-            var topElem = document.elementFromPoint(centerX, centerY);
-            // 若顶层元素是当前元素或其后代，则无遮挡
-            return elem.contains(topElem);
-        """, elem)
-        if not is_not_blocked:
-            return False
+        self._is_element_blocked(elem)
 
         # ---------------------- 6. 校验6：元素可交互（确保是浏览器认可的可点击元素） ----------------------
         # 检查元素是否有“可点击”的CSS特征（如cursor: pointer），或本身是可点击标签（button/a/input[type=button]）
@@ -227,25 +259,33 @@ class ExtJSSeleniumHelper:
         # 所有条件满足，返回元素实例
         return elem
 
-    def _element_ensure_readable(self, value, by=By.XPATH) -> str:
+    def _element_ensure_readable(self, value, by=By.XPATH) -> Optional[Union[bool,WebElement]]:
         """
-        确保元素可读取文本，返回非空、可识别的文本内容
-        校验逻辑：元素存在→可见→无遮挡→文本非空→文本可识别（排除乱码/占位符）
+        确保元素可读取文本
+        校验逻辑：元素存在→可见→无遮挡
         :param value: 定位值（如XPath表达式、ID值）
         :param by: 定位方式（默认By.XPATH）
-        :return: 元素的非空文本内容
-        :raises TimeoutException: 超时未满足可读取条件
         """
         # ---------------------- 1. 校验1：元素存在于DOM中（避免NoSuchElementException） ----------------------
-        elem = self._is_element_exist(value)
+        wait = self._wait()
+        elem = wait.until(lambda x: self._is_element_exist(value,by))
+        
 
         # ---------------------- 2. 校验2：元素完全可见（隐藏元素文本可能读取为空） ----------------------
 
-        self._getting_element_into_view(elem)
+        self._is_element_into_view(elem)
 
         # ---------------------- 3. 校验3：无遮挡（避免遮挡导致文本渲染不完整） ----------------------
         self._is_element_blocked(elem)
 
+        return elem
+    def _read_element(self, elem:WebElement) ->Optional[Union[bool,str]]:
+        """
+        读取文本
+        校验逻辑：文本非空→文本可识别（排除乱码/占位符）
+        :param elem: 目标元素
+        
+        """
         # ---------------------- 4. 校验4：文本非空且可识别（排除空文本/乱码/占位符） ----------------------
         # 获取元素文本（优先用text，若为空则尝试获取innerText（兼容部分框架））
         elem_text = elem.text.strip() or elem.get_attribute("innerText").strip()
@@ -263,18 +303,16 @@ class ExtJSSeleniumHelper:
         # 所有条件满足，返回非空可识别的文本
         return elem_text
     
-    def _element_ensure_writable(self, value, by=By.XPATH, input_text: str = None, enter = False) -> bool:
+    def _element_ensure_writable(self, value, by=By.XPATH) -> bool:
         """
-        确保元素可写入内容（如输入框），并验证写入内容生效
-        校验逻辑：元素存在→是可输入类型→非禁用→非只读→可见→可聚焦→写入内容匹配
+        确保元素可写入内容（如输入框
+        校验逻辑：元素存在→是可输入类型→非禁用→非只读→可见→可聚焦
         :param value: 定位值（如XPath表达式、ID值）
         :param by: 定位方式（默认By.XPATH）
-        :param input_text: 待写入的文本（若为None，仅校验“可写入状态”，不实际写入）
-        :return: True（可写入且内容生效）/ False（未满足条件）
-        :raises TimeoutException: 超时未满足可写入条件
         """
         # ---------------------- 1. 校验1：元素存在于DOM中 ----------------------
-        elem = self._is_element_exist(value)
+        wait = self._wait()
+        elem = wait.until(lambda x: self._is_element_exist(value))
         # ---------------------- 2. 校验2：元素是“可输入类型”（排除非输入元素） ----------------------
         valid_input_tags = ["input", "textarea"]  # 支持的可输入标签
         tag_name = elem.tag_name.lower()
@@ -295,9 +333,7 @@ class ExtJSSeleniumHelper:
             return False
 
         # ---------------------- 4. 校验4：元素可见且在视图内（避免聚焦失败） ----------------------
-        self.driver.execute_script("arguments[0].scrollIntoView({block: 'center', behavior: 'smooth'});", elem)
-        if not elem.is_displayed():
-            return False
+        self._is_element_into_view(elem)
 
         # ---------------------- 5. 校验5：元素可聚焦（输入框需能获取焦点才能写入） ----------------------
         # 用JS尝试聚焦元素，并验证是否成功聚焦
@@ -307,34 +343,44 @@ class ExtJSSeleniumHelper:
         """, elem)
         if not is_focused:
             return False  # 无法聚焦，写入会失败
-
+        
+        return True
+    
+    def _element_writing(self,elem: WebElement,input_text: str = None, enter = False) ->bool:
+        """
+        写入内容（如输入框），并验证写入内容生效
+        校验逻辑：写入内容匹配
+        :param input_text: 待写入的文本
+        :return: True（可写入且内容生效）/ False（未满足条件）
+        
+        """
+        tag_name = elem.tag_name.lower()
         # ---------------------- 6. 校验6：写入内容并验证生效（若传入input_text） ----------------------
-        if input_text is not None:
-            # 清空原有内容（避免叠加写入）
-            elem.clear()
-            # 写入新内容（用send_keys模拟真实输入，适配输入法/自动补全）
-            elem.send_keys(input_text)
-            if enter:
-                elem.send_keys(Keys.ENTER)
-            # 验证写入内容是否生效（不同元素获取内容的方式不同）
-            if tag_name == "input":
-                # input元素用value属性获取内容
-                written_text = elem.get_attribute("value").strip()
-            elif tag_name == "textarea":
-                # textarea元素用text或value获取内容
-                written_text = elem.text.strip() or elem.get_attribute("value").strip()
-            else:
-                # 自定义可编辑元素（contenteditable）用innerText获取内容
-                written_text = elem.get_attribute("innerText").strip()
-            # 验证写入内容与预期一致（允许前后空格差异，可根据需求调整）
-            if written_text != input_text.strip():
-                return False
+     
+        elem.clear()
+        # 写入新内容（用send_keys模拟真实输入，适配输入法/自动补全）
+        elem.send_keys(input_text)
+        if enter:
+            elem.send_keys(Keys.ENTER)
+        # 验证写入内容是否生效（不同元素获取内容的方式不同）
+        if tag_name == "input":
+            # input元素用value属性获取内容
+            written_text = elem.get_attribute("value").strip()
+        elif tag_name == "textarea":
+            # textarea元素用text或value获取内容
+            written_text = elem.text.strip() or elem.get_attribute("value").strip()
+        else:
+            # 自定义可编辑元素（contenteditable）用innerText获取内容
+            written_text = elem.get_attribute("innerText").strip()
+        # 验证写入内容与预期一致（允许前后空格差异，可根据需求调整）
+        if written_text != input_text.strip():
+            return False
 
         # 所有条件满足（可写入且内容生效）
         return True
 
 
-    def element_click(self,locator,overtime =10, by=By.XPATH):
+    def element_click(self,locator, by=By.XPATH):
         """
         自定义条件函数：定位元素，若不可见则滚动到可见，并执行点击
         :param self: 实例自身
@@ -344,7 +390,7 @@ class ExtJSSeleniumHelper:
         try:
             # 1. 定位元素（存在于DOM中）
             wait = self._wait()
-            elem = wait.until(lambda x:self._element_ensure_clickable(locator))
+            elem = wait.until(lambda x:self._element_ensure_clickable(locator,by))
            
             # 2. 检查元素是否可见
             if elem:
@@ -353,4 +399,21 @@ class ExtJSSeleniumHelper:
             # 元素暂未找到：返回False（继续等待）
             raise
 
+    def element_read(self,value:str) -> str:
+        try:
+            wait = self._wait()
+            el = wait.until(lambda x:self._element_ensure_readable(value))
+            if el:
+                return  self._read_element(el)
+        except:
+            raise
 
+    def element_write(self, value:str,input_text:str,enter=False): 
+
+        try:
+            wait = self._wait()
+            el = wait.until(lambda x:self._element_ensure_writable(value))
+            if el:
+                self._element_writing(el,input_text,enter)
+        except:
+            raise

@@ -21,38 +21,37 @@ def open_eam():
 
     # mySite.switch_to_new_tab(page_title['eam'])
 
-    # return mySite
+    return mySite
 
 def get_wo_list(mySite:ExtJSSeleniumHelper):
     # 4. WO Tab
-    mySite.ensure_element_visible(locators['page_wo_tag'])
-    mySite.safe_click(locators['page_wo_tag'])
-
+   
+    mySite.element_click(locators['page_wo_tag'])
     # 5. iframe
+    
     mySite.switch_to_iframe((By.ID,locators['page_iframe']))
 
     # 6. 筛选工单
     # 6.1 日期筛选下拉按钮
-    mySite.ensure_element_visible(locators['list_date_filter_drop_button'])
-    mySite.safe_click(locators['list_date_filter_drop_button'])
-    # 6.2 日期比较条件  <=
-    mySite.ensure_element_visible(locators['list_date_condition'],By.CSS_SELECTOR)
-    mySite.safe_click(locators['list_date_condition'],By.CSS_SELECTOR)   
-    # 6.3 日期输入
-    mySite.ensure_element_visible(locators['list_date_input'],By.CSS_SELECTOR)
-    mySite.safe_input(locators['list_date_input'],TODAY,By.CSS_SELECTOR,enter=True)
-
-    # 等待运算完成
-    time.sleep(2)
-
-    # 7. 工单列表
-    # tables = mySite.find_elements(By.XPATH, locators['list_wo'])
     
-    if mySite.wait_for_element_clickable(locators['list_wo']):
-        wos = mySite.get_elements(locators['list_wo'])
-    # 8. 遍历工单并进行处理   
-    if wos:
-        return wos
+    mySite.element_click(locators['list_date_filter_drop_button'])
+    # 6.2 日期比较条件  <=
+    
+    mySite.element_click(locators['list_date_condition'],by=By.CSS_SELECTOR)   
+    # 6.3 日期输入
+    
+    mySite.element_write(locators['list_date_input'],TODAY,True)
+    # 等待运算完成
+    # time.sleep(2)
+
+    # # 7. 工单列表
+    # # tables = mySite.find_elements(By.XPATH, locators['list_wo'])
+    
+    # if mySite.wait_for_element_clickable(locators['list_wo']):
+    #     wos = mySite.get_elements(locators['list_wo'])
+    # # 8. 遍历工单并进行处理   
+    # if wos:
+    #     return wos
     
 
 
@@ -152,7 +151,8 @@ def handle_work_order(mySite:ExtJSSeleniumHelper, wo):
 
 if __name__ == '__main__':
 
-    open_eam()
+    w = open_eam()
+    get_wo_list(mySite=w)
 
     
     
