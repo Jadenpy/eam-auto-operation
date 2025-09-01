@@ -1,0 +1,20 @@
+  File "c:\Users\jhu00\OneDrive - Textron\Documents\code\eam-auto-operation\deepseek\process_copy.py", line 155, in <module>
+    get_wo_list(mySite=w)
+  File "c:\Users\jhu00\OneDrive - Textron\Documents\code\eam-auto-operation\deepseek\process_copy.py", line 29, in get_wo_list
+    mySite.element_click(locators['page_wo_tag'])
+  File "c:\Users\jhu00\OneDrive - Textron\Documents\code\eam-auto-operation\deepseek\extJSSeleniumHelper_copy.py", line 393, in element_click
+    elem = wait.until(lambda x:self._element_ensure_clickable(locator,by))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\jhu00\OneDrive - Textron\Documents\code\eam-auto-operation\.venv\Lib\site-packages\selenium\webdriver\support\wait.py", line 129, in until   
+    value = method(self._driver)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\jhu00\OneDrive - Textron\Documents\code\eam-auto-operation\deepseek\extJSSeleniumHelper_copy.py", line 393, in <lambda>
+    elem = wait.until(lambda x:self._element_ensure_clickable(locator,by))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\jhu00\OneDrive - Textron\Documents\code\eam-auto-operation\deepseek\extJSSeleniumHelper_copy.py", line 222, in _element_ensure_clickable     
+    elem = wait.until(lambda x: self._is_element_exist(value,by))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\jhu00\OneDrive - Textron\Documents\code\eam-auto-operation\.venv\Lib\site-packages\selenium\webdriver\support\wait.py", line 137, in until   
+    time.sleep(self._poll)
+TypeError: 'type' object cannot be interpreted as an integer
+(.venv) PS C:\Users\jhu00\OneDrive - Textron\Documents\code\eam-auto-operation> 
