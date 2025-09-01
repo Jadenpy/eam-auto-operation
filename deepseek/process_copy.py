@@ -1,8 +1,9 @@
 # 验证extJSSeleniumHelper的功能是否可行
-from extJSSeleniumHelper import ExtJSSeleniumHelper
-from path import ERIC, EDGE, locators,TODAY,page_title
+from extJSSeleniumHelper_copy import ExtJSSeleniumHelper
+from path_copy import ERIC, EDGE, locators,TODAY,page_title
 from selenium.webdriver.common.by import By
-import time
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 
 def open_eam():
@@ -10,20 +11,17 @@ def open_eam():
     mySite = ExtJSSeleniumHelper(executable_path=EDGE)
 
     # 2.打开eric的首页
-    success = mySite.load_extjs_page(ERIC)
-    if success:
-        print('eric的首页加载成功')
-
-    else:
-        print('eric的首页加载失败')
+    mySite.openURL(ERIC)
     
     # 3. EAM link
-    mySite.ensure_element_visible(locators['page_eam'])
-    mySite.safe_click(locators['page_eam'])
+    # mySite.element_clickable_and_click(locators['page_eam'])
+    mySite.element_click(locators['page_eam'])
+    # mySite.ensure_element_visible(locators['page_eam'])
+    # mySite.safe_click(locators['page_eam'])
 
-    mySite.switch_to_new_tab(page_title['eam'])
+    # mySite.switch_to_new_tab(page_title['eam'])
 
-    return mySite
+    # return mySite
 
 def get_wo_list(mySite:ExtJSSeleniumHelper):
     # 4. WO Tab
@@ -154,7 +152,7 @@ def handle_work_order(mySite:ExtJSSeleniumHelper, wo):
 
 if __name__ == '__main__':
 
-    pass
+    open_eam()
 
     
     
