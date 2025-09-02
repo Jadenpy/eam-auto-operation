@@ -8,3 +8,21 @@
         "uxtabiframe"
     ]
 }
+
+
+{
+    // 启用 mypy 作为 linting 工具
+    "python.linting.mypyEnabled": true,
+    // （可选）设置 mypy 为实时检查（保存文件时自动触发）
+    "python.linting.lintOnSave": true,
+    // （可选）指定 mypy 路径（若使用虚拟环境，需确保路径正确）
+    "mypy.dmypyExecutable": "${workspaceFolder}\\.venv\\Scripts\\dmypy.exe",
+    "python.linting.mypyPath": "${workspaceFolder}\\.venv\\bin\\mypy",
+    "python.linting.mypyArgs": [
+        "--strict", // 启用 mypy 严格模式（推荐生产环境）
+        "--ignore-missing-imports", // 忽略第三方库无类型标注的警告
+        "--exclude",
+        "tests/", // 不检查 tests 目录
+        "--show-error-codes" // 显示错误代码（便于查错，如 "error: Incompatible types (expression has type "str", variable has type "int") [assignment]"）
+    ]
+}
