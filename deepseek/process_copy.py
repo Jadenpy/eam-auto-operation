@@ -21,11 +21,20 @@ def open_eam()->Optional[Union[ExtJSSeleniumHelper]]:
         
         # 4. change to the new tag
         # mySite.switch_to_new_tab(page_title['eam'])
-        if mySite.tab_change(page_title['eam']):
+        if mySite.tab_change(page_title['eam']) and isinstance(mySite,ExtJSSeleniumHelper):
             return mySite
-    except:
-        print(f'网页开启失败')
+        else:
+            actual_type = type(mySite).__name__
+            raise TypeError(
+                f"元素类型错误：期望传入 WebElement 实例，实际传入的是 {actual_type} 类型（值：{mySite}）"
+                )
+    except TypeError as e:
+        print(f"捕获到 TypeError：{str(e)}")
         raise
+    except Exception as e:
+               
+                print(f"未知错）：{str(e)}")
+                raise
 
     finally:
         pass
