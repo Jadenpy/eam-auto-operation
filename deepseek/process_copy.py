@@ -21,20 +21,26 @@ def open_eam()->Optional[Union[ExtJSSeleniumHelper]]:
         
         # 4. change to the new tag
         # mySite.switch_to_new_tab(page_title['eam'])
-        if mySite.tab_change(page_title['eam']) and isinstance(mySite,ExtJSSeleniumHelper):
+        if all( _== True for _ in [mySite.tab_change(page_title['eam']) ,isinstance(mySite,ExtJSSeleniumHelper)]):
             return mySite
-        else:
+        elif not isinstance(mySite,ExtJSSeleniumHelper):
             actual_type = type(mySite).__name__
             raise TypeError(
                 f"元素类型错误：期望传入 WebElement 实例，实际传入的是 {actual_type} 类型（值：{mySite}）"
                 )
+        elif not mySite.tab_change(page_title['eam']):
+            raise ValueError(
+                f"mySite.tab_change(page_title['eam'] 返回值为 False ,应当为True"
+                )
     except TypeError as e:
         print(f"捕获到 TypeError：{str(e)}")
         raise
+    except ValueError as e:
+        print(f"捕获到 ValueError：{str(e)}")
+        raise
     except Exception as e:
-               
-                print(f"未知错）：{str(e)}")
-                raise
+        print(f"未知错）：{str(e)}")
+        raise
 
     finally:
         pass
@@ -89,6 +95,10 @@ def read_work_order_information(mySite:ExtJSSeleniumHelper,wo:WebElement) ->tupl
         person = mySite.element_read(locators["wo_r_assigned_to"])
         # 所需工时
         estimated_hours = mySite.element_read(locators["wo_r_estimated_hours"])
+
+        if any( s == ''  for s in [start_date,end_date,person,estimated_hours]):
+            print(f'开始日期：{start_date}，结束日期：{end_date}, 所属人员：{person},所需工时：{estimated_hours}')
+            raise ValueError(f'请见上面打印的结果，有项目的值为空')
         # click book labor  
         mySite.element_click(locators["wo_c_book_labor"])
 
@@ -116,10 +126,8 @@ def fill_out_work_order(mySite:ExtJSSeleniumHelper, wo:WebElement):
         # fill in
         # 所属人员
         mySite.element_child_send_keys(panel,person,locators["wo_w_employee"])
-        if estimated_hours != '':
-            work_hour = "{:.1f}".format(float(estimated_hours) / 2)
-        else:
-            raise ValueError(f'初始工时为空')
+        
+        work_hour = "{:.1f}".format(float(estimated_hours) / 2)
         # 实际工时
         
         mySite.element_child_send_keys(panel,work_hour,locators["wo_w_hours_worked"])

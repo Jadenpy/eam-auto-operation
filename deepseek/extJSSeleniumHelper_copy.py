@@ -368,20 +368,42 @@ class ExtJSSeleniumHelper:
         except:
             raise
     
-    def _read_element(self, elem:WebElement) ->Optional[Union[bool,str]]:
+    def _read_element(self, elem:WebElement,retry_count:int=10) ->Optional[Union[bool,str]]:
         """
         读取文本
         校验逻辑：文本非空→文本可识别（排除乱码/占位符）
         :param elem: 目标元素
         
         """
-        try:
-            # ---------------------- 4. 校验4：文本非空且可识别（排除空文本/乱码/占位符） ----------------------
-            # 获取元素文本（优先用text，若为空则尝试获取innerText（兼容部分框架））
-            elem_text = elem.text.strip() or elem.get_attribute("value").strip()
-            return elem_text
-        except:
-            raise
+        # 记录当前重试次数（用于日志和终止条件）
+        current_retry = 0
+        while current_retry < retry_count:
+            try:
+                # ---------------------- 4. 校验4：文本非空且可识别（排除空文本/乱码/占位符） ----------------------
+                # 获取元素文本（优先用text，若为空则尝试获取innerText（兼容部分框架））
+                
+                elem_text = elem.text.strip() or elem.get_attribute("value").strip()
+                if elem_text != '':
+                    return elem_text
+                else:
+                    raise ValueError(
+                        f"读取值为空，重新读取"
+                    )
+            except ValueError as e:
+                # 捕获到 TypeError，准备重试
+                time.sleep(0.5)
+                current_retry += 1
+                print(f"{str(e)}，第 {current_retry}/{retry_count} 次重试...")
+            
+                # 若重试次数已达上限，不再重试，重新抛出异常
+                if current_retry >= retry_count:
+                    print(f"重试次数已耗尽（共 {retry_count} 次），无法修复，终止重试")
+                    raise  # 重新抛出最终异常，让调用方感知错误
+
+            except Exception as e:
+                # 捕获其他未知异常（如元素不可点击、页面刷新等），直接抛出
+                print(f"元素点击失败（未知错误）：{str(e)}")
+                raise
 
     def _write_element(self,elem: WebElement,input_text:str = None, enter:bool= False, tab:bool=False) ->bool:
         """
@@ -439,9 +461,10 @@ class ExtJSSeleniumHelper:
                 
                 # 2. 检查元素是否可见
                 if isinstance(elem,WebElement):
-
+                    time.sleep(0.1)
                     # elem.click()
                     self.driver.execute_script("arguments[0].click();", elem)
+                    time.sleep(0.2)
                     return
                 else:
                     actual_type = type(elem).__name__
@@ -472,9 +495,16 @@ class ExtJSSeleniumHelper:
         try:
             wait = self._wait()
             el = wait.until(lambda x:self._element_ensure_readable(pos_value,pos_by))
-            if el:
+            if isinstance(el,WebElement):
                 return  self._read_element(el)
-        except:
+            else:
+                actual_type = type(el).__name__
+                raise TypeError(f'定位值{pos_value}，定位方式：{pos_by},应该为WebElement实例，但实际为{actual_type}的实例')
+        except TypeError as e:
+            print(f'类型错误：{str(e)}')
+            raise
+        except Exception as e:
+            print(f'未知错误：{str(e)}')
             raise
 
     def element_write(self, pos_value:str,input_text:str,pos_by=By.XPATH,enter=False,tab=False): 
@@ -482,9 +512,16 @@ class ExtJSSeleniumHelper:
         try:
             wait = self._wait()
             el = wait.until(lambda x:self._element_ensure_writable(pos_value,pos_by))
-            if el:
+            if isinstance(el,WebElement):
                 self._write_element(el,input_text,enter,tab)
-        except:
+            else:
+                actual_type = type(el).__name__
+                raise TypeError(f'定位值{pos_value}，定位方式：{pos_by},应该为WebElement实例，但实际为{actual_type}的实例')
+        except TypeError as e:
+            print(f'类型错误：{str(e)}')
+            raise
+        except Exception as e:
+            print(f'未知错误：{str(e)}')
             raise
     
  
@@ -570,3 +607,4 @@ class ExtJSSeleniumHelper:
         el = parent.find_element(pos_by,pos_value) 
         if isinstance(el,WebElement):
             el.send_keys(input_text)
+        time.sleep(0.2)
