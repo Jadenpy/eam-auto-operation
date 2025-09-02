@@ -116,8 +116,10 @@ def fill_out_work_order(mySite:ExtJSSeleniumHelper, wo:WebElement):
         # fill in
         # 所属人员
         mySite.element_child_send_keys(panel,person,locators["wo_w_employee"])
-    
-        work_hour = "{:.1f}".format(float(estimated_hours) / 2)
+        if estimated_hours != '':
+            work_hour = "{:.1f}".format(float(estimated_hours) / 2)
+        else:
+            raise ValueError(f'初始工时为空')
         # 实际工时
         
         mySite.element_child_send_keys(panel,work_hour,locators["wo_w_hours_worked"])
