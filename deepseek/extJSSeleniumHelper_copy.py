@@ -397,8 +397,9 @@ class ExtJSSeleniumHelper:
             
                 # 若重试次数已达上限，不再重试，重新抛出异常
                 if current_retry >= retry_count:
-                    print(f"重试次数已耗尽（共 {retry_count} 次），无法修复，终止重试")
-                    raise  # 重新抛出最终异常，让调用方感知错误
+                    print(f"重试次数已耗尽（共 {retry_count} 次）")
+                    raise
+                    
 
             except Exception as e:
                 # 捕获其他未知异常（如元素不可点击、页面刷新等），直接抛出
@@ -417,7 +418,10 @@ class ExtJSSeleniumHelper:
             tag_name = elem.tag_name.lower()
             # ---------------------- 6. 校验6：写入内容并验证生效（若传入input_text） ----------------------
         
-            elem.clear()
+            # elem.clear()
+            elem.click()
+            elem.send_keys(Keys.CONTROL, 'a')
+            elem.send_keys(Keys.DELETE)
             # 写入新内容（用send_keys模拟真实输入，适配输入法/自动补全）
             elem.send_keys(input_text)
             if enter:
@@ -461,7 +465,7 @@ class ExtJSSeleniumHelper:
                 
                 # 2. 检查元素是否可见
                 if isinstance(elem,WebElement):
-                    time.sleep(0.1)
+                    time.sleep(0.2)
                     # elem.click()
                     self.driver.execute_script("arguments[0].click();", elem)
                     time.sleep(0.2)
@@ -496,6 +500,7 @@ class ExtJSSeleniumHelper:
             wait = self._wait()
             el = wait.until(lambda x:self._element_ensure_readable(pos_value,pos_by))
             if isinstance(el,WebElement):
+                time.sleep(0.2)
                 return  self._read_element(el)
             else:
                 actual_type = type(el).__name__
@@ -513,6 +518,7 @@ class ExtJSSeleniumHelper:
             wait = self._wait()
             el = wait.until(lambda x:self._element_ensure_writable(pos_value,pos_by))
             if isinstance(el,WebElement):
+                time.sleep(0.2)
                 self._write_element(el,input_text,enter,tab)
             else:
                 actual_type = type(el).__name__
@@ -590,11 +596,12 @@ class ExtJSSeleniumHelper:
 
         try:
         # 1. wait def
-            wait = self._wait(overtime=overtime)
+            # wait = self._wait(overtime=overtime)
         # 2. element can be clicked
             el = self._getting_element_method(pos_value,element,pos_by)
         # 3. do
             if isinstance(el,WebElement):
+                time.sleep(0.5)
                 self.action_double_click(el) 
         except:
             raise
@@ -607,4 +614,4 @@ class ExtJSSeleniumHelper:
         el = parent.find_element(pos_by,pos_value) 
         if isinstance(el,WebElement):
             el.send_keys(input_text)
-        time.sleep(0.2)
+        time.sleep(0.5)

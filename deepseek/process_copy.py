@@ -96,12 +96,7 @@ def read_work_order_information(mySite:ExtJSSeleniumHelper,wo:WebElement) ->tupl
         # 所需工时
         estimated_hours = mySite.element_read(locators["wo_r_estimated_hours"])
 
-        if any( s == ''  for s in [start_date,end_date,person,estimated_hours]):
-            print(f'开始日期：{start_date}，结束日期：{end_date}, 所属人员：{person},所需工时：{estimated_hours}')
-            raise ValueError(f'请见上面打印的结果，有项目的值为空')
-        # click book labor  
-        mySite.element_click(locators["wo_c_book_labor"])
-
+        
         return  start_date, end_date, person, estimated_hours 
     except:
         raise
@@ -113,6 +108,19 @@ def fill_out_work_order(mySite:ExtJSSeleniumHelper, wo:WebElement):
     try:
         information = read_work_order_information(mySite, wo)
         start_date, end_date, person, estimated_hours = information
+        if any( s == ''  for s in [start_date,end_date,person,estimated_hours]):
+            print(f'开始日期：{start_date}，结束日期：{end_date}, 所属人员：{person},所需工时：{estimated_hours}')
+            print(f'跳出该工单')
+            
+            # double click side bar
+            side_bar = mySite.element_get(locators["wo_c_slide_bar"])
+            mySite.element_double_click(side_bar)
+            time.sleep(2)
+
+            raise ValueError('工单项目有值为空')
+        # click book labor  
+        mySite.element_click(locators["wo_c_book_labor"])
+
         # panel
         panel = mySite.element_get(locators["wo_r_panel"])
         # 是否activity 有值
@@ -125,24 +133,26 @@ def fill_out_work_order(mySite:ExtJSSeleniumHelper, wo:WebElement):
 
         # fill in
         # 所属人员
+        # work_hour = "{:.1f}".format(float(estimated_hours) / 2)
+
         mySite.element_child_send_keys(panel,person,locators["wo_w_employee"])
         
-        work_hour = "{:.1f}".format(float(estimated_hours) / 2)
+        
         # 实际工时
-        
-        mySite.element_child_send_keys(panel,work_hour,locators["wo_w_hours_worked"])
+        time.sleep(1)
+        mySite.element_child_send_keys(panel,estimated_hours,locators["wo_w_hours_worked"])
         # 实际日期
-        
+        time.sleep(1)
         mySite.element_child_send_keys(panel,start_date,locators["wo_w_date_worked"])
-
+        time.sleep(1)
         # form save
         mySite.element_click(locators["wo_c_submit"])
-
+        time.sleep(1)
         # record save
         mySite.element_click(locators["wo_c_record_save"])
 
         # go back record view tab
-        
+        time.sleep(1)
         mySite.element_click(locators["wo_c_record_view"])
 
         # update status
@@ -152,11 +162,12 @@ def fill_out_work_order(mySite:ExtJSSeleniumHelper, wo:WebElement):
         mySite.element_click(locators["wo_c_record_save"])
 
         # double click side bar
+        time.sleep(3)
         side_bar = mySite.element_get(locators["wo_c_slide_bar"])
         mySite.element_double_click(side_bar)
         
-    except:    
-        raise
+    except ValueError as e:    
+        print(f'值为空，{str(e)}')
 
     finally:
         pass
@@ -170,11 +181,13 @@ def fill_out_work_order(mySite:ExtJSSeleniumHelper, wo:WebElement):
 
 if __name__ == '__main__':
 
-    w = open_eam()
-    orders = get_wo_list(mySite=w)
+    edge = open_eam()
+    orders = get_wo_list(mySite=edge)
 
     for index, work_order in  enumerate(orders,start=1):
-        fill_out_work_order(w,work_order)
+        fill_out_work_order(edge,work_order)
+        if index == 1:
+            pass
     
 
     
