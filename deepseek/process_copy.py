@@ -11,7 +11,7 @@ def open_eam() -> Optional[Union[ExtJSSeleniumHelper]]:
     # 1. 配置selenium
     try:
         mySite = ExtJSSeleniumHelper(executable_path=EDGE)
-
+        """
         # 2.打开eric的首页
         mySite.openURL(ERIC)
 
@@ -37,6 +37,10 @@ def open_eam() -> Optional[Union[ExtJSSeleniumHelper]]:
             raise ValueError(
                 "mySite.tab_change(page_title['eam'] 返回值为 False ,应当为True"
             )
+        """
+        EAM = 'https://eu1.eam.hxgnsmartcloud.com/web/base/logindisp?tenant=KAUTEX_PRD'
+        mySite.openURL(EAM)
+        return mySite
     except TypeError as e:
         print(f"捕获到 TypeError：{str(e)}")
         raise
