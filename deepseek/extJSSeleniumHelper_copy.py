@@ -465,10 +465,10 @@ class ExtJSSeleniumHelper:
                 
                 # 2. 检查元素是否可见
                 if isinstance(elem,WebElement):
-                    time.sleep(0.2)
+                    time.sleep(0.5)
                     # elem.click()
                     self.driver.execute_script("arguments[0].click();", elem)
-                    time.sleep(0.2)
+                    time.sleep(0.5)
                     return
                 else:
                     actual_type = type(elem).__name__
@@ -518,7 +518,7 @@ class ExtJSSeleniumHelper:
             wait = self._wait()
             el = wait.until(lambda x:self._element_ensure_writable(pos_value,pos_by))
             if isinstance(el,WebElement):
-                time.sleep(0.2)
+                time.sleep(0.5)
                 self._write_element(el,input_text,enter,tab)
             else:
                 actual_type = type(el).__name__
@@ -581,7 +581,7 @@ class ExtJSSeleniumHelper:
             _ = wait.until(EC.presence_of_element_located((pos_by,pos_value)))
         # 3. 返回
 
-            if _:
+            if isinstance(_,WebElement):
                 return _
         except:
             raise 
@@ -595,8 +595,7 @@ class ExtJSSeleniumHelper:
     def element_double_click(self,element:WebElement,pos_value:str=None,pos_by=By.XPATH,overtime=SHORT)->None:
 
         try:
-        # 1. wait def
-            # wait = self._wait(overtime=overtime)
+      
         # 2. element can be clicked
             el = self._getting_element_method(pos_value,element,pos_by)
         # 3. do
@@ -613,5 +612,6 @@ class ExtJSSeleniumHelper:
         # 子元素
         el = parent.find_element(pos_by,pos_value) 
         if isinstance(el,WebElement):
-            el.send_keys(input_text)
-        time.sleep(0.5)
+            # 写入
+            self._write_element(el,input_text)
+        time.sleep(1)

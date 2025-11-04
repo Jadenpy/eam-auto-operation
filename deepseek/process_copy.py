@@ -5,6 +5,7 @@ from selenium.webdriver.common.by import By
 import time
 from typing import Optional, Union
 from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.support.ui import Select
 
 
 def open_eam() -> Optional[Union[ExtJSSeleniumHelper]]:
@@ -148,31 +149,45 @@ def fill_out_work_order(mySite: ExtJSSeleniumHelper, wo: WebElement):
         mySite.element_child_send_keys(panel, person, locators["wo_w_employee"])
 
         # 实际工时
-        time.sleep(1)
+        # time.sleep(1)
         mySite.element_child_send_keys(
             panel, estimated_hours, locators["wo_w_hours_worked"]
         )
         # 实际日期
-        time.sleep(1)
+        # time.sleep(1)
         mySite.element_child_send_keys(panel, start_date, locators["wo_w_date_worked"])
-        time.sleep(1)
+        # time.sleep(1)
         # form save
         mySite.element_click(locators["wo_c_submit"])
-        time.sleep(1)
+        # time.sleep(1)
         # record save
         mySite.element_click(locators["wo_c_record_save"])
 
         # go back record view tab
-        time.sleep(1)
+        # time.sleep(1)
         mySite.element_click(locators["wo_c_record_view"])
 
-        # update status
-        mySite.element_write(locators["wo_r_status"], "Completed")
+        # # update status
+        # # time.sleep(1)
+        # # 下拉菜单选择Completed
+        # # 使用selenium的下拉菜单选择
+        # # 1.定位select元素
+        # status_select_element = mySite.element_get('//*[@id="uxcombobox-1415-trigger-picker"]')
+        # # 2.初始化Select对象
+        # select = Select(status_select_element)
+        # # 3.使用select_by_visible_text方法选择
+        # select.select_by_visible_text("Completed")
 
+
+        
+        mySite.element_write(locators["wo_r_status"], "Completed",enter=True)
+       
         # final save
+        # time.sleep(1)
         mySite.element_click(locators["wo_c_record_save"])
 
         # double click side bar
+        # time.sleep(3)
         time.sleep(3)
         side_bar = mySite.element_get(locators["wo_c_slide_bar"])
         mySite.element_double_click(side_bar)
