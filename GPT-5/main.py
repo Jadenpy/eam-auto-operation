@@ -5,13 +5,13 @@ from selenium.webdriver.edge.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException,NoSuchElementException
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver import ActionChains
 from datetime import datetime, timedelta
 from selenium.webdriver.remote.webelement import WebElement
 import time
-
+import random
 
 URL = 'https://eu1.eam.hxgnsmartcloud.com/web/base/logindisp?tenant=KAUTEX_PRD'
 
@@ -97,8 +97,6 @@ def switch_to_iframe_and_check_grid():
     print("✔ 已进入包含工单列表的 iframe")
 
 
-
-WO_NUMBER = "//div[not(div) and contains(., 'Records:')]"
 def get_wo_total_number():
     import re
 
@@ -115,11 +113,13 @@ def get_wo_total_number():
         print("Total records:", total_count)  # 输出: 130
 
 
-def click_end_date_filter_condition(
+def select_option(
     driver: webdriver.Remote = driver,
-    n: int = 6,
-    tag_name: str = "a",  
-    timeout: int = 10
+    timeout: int = 10,   
+    by:By = By.XPATH,
+    locator:str = '',
+    condition:str = 'Less Than or Equals'
+    
 ) -> bool:
     """
     点击 Ext JS Grid 中第 n 个列筛选按钮（通常为下拉箭头）
@@ -130,18 +130,13 @@ def click_end_date_filter_condition(
     :param timeout: 显式等待超时时间（秒）
     :return: 是否成功点击
     """
-    
-    if n < 1:
-        raise ValueError("参数 n 必须为正整数（>=1）")
-
-    xpath = f"(//{tag_name}[contains(@class, 'x-btn-gridfilter')])[{n}]"
-
+ 
     try:
         # step 1 . 点击 弹出筛选按钮   done
         element = WebDriverWait(driver, timeout).until(
-            EC.element_to_be_clickable((By.XPATH, xpath))
+            EC.element_to_be_clickable((by,locator))
         )
-        print(f"✅ 成功定位并点击第 {n} 个筛选按钮")
+        print("✅ 成功定位并点击个筛选按钮")
         element.click()
         
         # Step 2: 等待菜单项出现（最多等 timeout 秒）
@@ -154,7 +149,7 @@ def click_end_date_filter_condition(
         target_item = None
         for item in menu_items:
             text = item.text.strip()
-            if text == "Less Than or Equals":
+            if text == condition:
                 target_item = item
                 break
 
@@ -162,16 +157,16 @@ def click_end_date_filter_condition(
             # 确保可点击（有时需要短暂等待渲染）
             WebDriverWait(driver, 2).until(EC.element_to_be_clickable(target_item))
             target_item.click()
-            print("✅ 成功选择 'Less Than or Equals' (≤)")
+            print(f"✅ 成功选择 {condition}")
             return True
         else:
             available = [item.text.strip() for item in menu_items]
-            print(f"❌ 未找到 'Less Than or Equals'，可用选项: {available}")
+            print(f"❌ 未找到 {condition}，可用选项: {available}")
             return False
 
-        return True
+        # return True
     except TimeoutException:
-        print(f"❌ 超时：未找到第 {n} 个筛选按钮（XPath: {xpath}）")
+        print("❌ 超时：未找到筛选按钮")
         return False
     except Exception as e:
         print(f"⚠️ 点击失败: {type(e).__name__}: {e}")
@@ -254,11 +249,9 @@ def input_assigned_person_name(
     try:
         # Step 1: 等待输入框存在并可见
         input_el = WebDriverWait(driver, timeout).until(
-            # EC.visibility_of_element_located((By.NAME, el_name))
-            # EC.presence_of_element_located
             EC.presence_of_element_located((By.NAME, el_name))
         )
-        print(f"👁️  已定位到分配人员输入框 ({el_name})")
+        print("👁️  已定位到分配人员输入框")
 
         # Step 2: 滚动到元素位置（确保在视口内，避免被 header 遮挡）
         driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", input_el)
@@ -279,17 +272,19 @@ def input_assigned_person_name(
         print(f"❌ 设置分配人员失败: {e}")
 
 
-def click_run_button(
-    driver: webdriver.Remote = driver,        
+def click_button(
+    driver: webdriver.Remote = driver,
+    by:By = By.XPATH,
+    locator : str =  '' ,
+
 ):
-    run_button = WebDriverWait(driver, 10).until(
-    # EC.element_to_be_clickable((By.XPATH, "//button[.//text()='Run'] | //a[.//text()='Run']"))
-    EC.element_to_be_clickable((By.XPATH, "//span[text()='Run' and contains(@class, 'x-btn-inner')]"))
+    el = WebDriverWait(driver, 10).until(
+        EC.element_to_be_clickable((by, locator))
     )
-    run_button.click()
+    el.click()
     wait_ext_ready()
     wait_ajax_done()
-    print("✅ 已经点击RUN按钮")
+    print("✅ 已经点击按钮")
 
 
 def get_work_orders(
@@ -308,18 +303,40 @@ def get_work_orders(
     )
     return work_order_tables
 
+def get_an_element(
+    objct: webdriver.Remote | WebElement = driver,  
+    by: By = By.XPATH,
+    locator:str = '',
+    timeout:int = 10
+    ) -> WebElement | None: 
+    try:
+        return WebDriverWait(objct, timeout).until(
+            EC.presence_of_element_located((by, locator))
+        )
+    except (TimeoutException, NoSuchElementException) as e:
+        msg = f"❌ 元素未在 {timeout} 秒内出现: ({by}, {locator})"
+        return None
 
-def double_click_target_WO(
+    except Exception as e:
+        # 捕获其他异常（如 StaleElementReferenceException）
+        msg = f"⚠️ 定位元素时发生意外错误: ({by}, {locator}) - {str(e)}"
+        print(msg)
+        return None
+    
+    
+
+
+def double_click_elment(
     driver: webdriver.Remote = driver,
-    target_table:WebElement = None,   
+    el:WebElement = None,   
 ):
     # 假设 target_table 是你选中的那个 <table> 元素
-    if target_table is not None:
+    if el is not None:
         # print(target_table)
-        ActionChains(driver).double_click(target_table).perform()
+        ActionChains(driver).double_click(el).perform()
         wait_ext_ready()
         wait_ajax_done()
-        print('双击工单执行')
+        print('双击元素执行')
 
 def get_work_order_item_information(
     driver:webdriver.Remote = driver,
@@ -336,66 +353,334 @@ def get_work_order_item_information(
     print("元素的值为:", current_value)  # 输出: 2026-01-15
     return current_value
 
-def input_work_order_detail(
+def input_text(
     driver:webdriver.Remote = driver,
     by:By = By.XPATH,
     locator: str = '',
-    text:str = ''
+    text:str = '',
+    is_enter:bool = False,
+    is_tab:bool = False,
 ):
 
     # 通过 locator 定位
     el = driver.find_element(by=by,value=locator)
 
-    # 设置今天
-    
+     # elem.clear()
+    el.click()
     el.clear()
+    el.send_keys(Keys.CONTROL, 'a')
+    el.send_keys(Keys.DELETE)
+    # 写入新内容（用send_keys模拟真实输入，适配输入法/自动补全）
+    
     el.send_keys(text)
+    if is_enter:
+        el.send_keys(Keys.ENTER)
+    if is_tab:
+        el.send_keys(Keys.TAB)
 
     # 触发 change 事件（必须！）
     driver.execute_script("arguments[0].dispatchEvent(new Event('change'))", el)
 
     print("✅已经录入信息 ")
 
+def select_combobox_option(
+        driver:webdriver.Remote = driver, 
+        option_text: str = '', 
+        timeout: int = 10):
+    """专用于 Ext JS ComboBox"""
+    try:
+        WebDriverWait(driver, timeout).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, ".x-boundlist"))
+        )
+
+        # 3. 查找并点击选项
+        options = driver.find_elements(By.CSS_SELECTOR, ".x-boundlist-item")
+        for opt in options:
+            if opt.text.strip() == option_text:
+                WebDriverWait(driver, timeout).until(EC.element_to_be_clickable(opt))
+                opt.click()
+                print(f"✅ 已选择: {option_text}")
+                return True
+
+        available = [opt.text.strip() for opt in options]
+        print(f"❌ 未找到 '{option_text}'，可用选项: {available}")
+        return False
+        # return True
+    except TimeoutException:
+        print("❌ 超时：未找到筛选按钮")
+        return False
+    except Exception as e:
+        available = [opt.text.strip() for opt in options]
+        print(f"❌ 未找到 '{option_text}'，可用选项: {available}")
+        print(f"⚠️ 选择失败: {type(e).__name__}: {e}")
+        return False
+
+def safe_click_combobox_trigger(
+        driver:webdriver.Remote=driver, 
+        by:By = By.XPATH, 
+        locator :str = '', 
+        timeout=10):
+    """
+    安全点击 ComboBox trigger，确保下拉弹出
+    """
+
+    # Step 1: 等待 loading 消失（关键！）
+    try:
+        WebDriverWait(driver, 3).until_not(
+            EC.presence_of_element_located((By.CSS_SELECTOR, ".x-mask-loading"))
+        )
+    except:
+        pass  # 没有 loading 就跳过
+
+    # Step 2: 等待 trigger 可点击
+    trigger = WebDriverWait(driver, timeout).until(
+        EC.element_to_be_clickable((by, locator))
+    )
+
+    # Step 3: 点击 + 验证是否弹出（带重试）
+    max_retries = 3
+    for attempt in range(max_retries):
+        # 等待遮罩层消失
+        wait = WebDriverWait(driver, 10)
+        wait.until(EC.invisibility_of_element_located((By.ID, "ext-element-30")))
+
+        # 或者更通用：等待所有 x-mask 遮罩消失
+        wait.until_not(EC.presence_of_element_located((By.CLASS_NAME, "x-mask")))
+        trigger.click()
+        time.sleep(0.3)  # 给 JS 响应时间
+
+        try:
+            WebDriverWait(driver, 2).until(
+                EC.visibility_of_element_located((By.CSS_SELECTOR, ".x-boundlist"))
+            )
+            print("✅ 下拉面板已成功弹出")
+            return True
+        except:
+            if attempt < max_retries - 1:
+                print(f"⚠️ 第 {attempt+1} 次点击未生效，重试...")
+                # 重新获取 trigger（防止 stale element）
+                trigger = WebDriverWait(driver, timeout).until(
+                    EC.element_to_be_clickable((by, locator))
+                )
+            else:
+                raise Exception("❌ 多次尝试后下拉仍未弹出")
+
+    return False
+
+def wait_for_save_confirmation(
+        driver:webdriver.Remote = driver, 
+        timeout: int = 10
+        ):
+    """
+    全局等待页面出现 'successfully saved' 文本（不区分大小写）
+    只要出现，就返回 True；超时未出现，返回 False
+    """
+    try:
+        WebDriverWait(driver, timeout).until(
+            lambda d: "successfully saved" in d.page_source.lower()
+        )
+        print("✅ 检测到 'successfully saved'，工单处理完成")
+        # 尝试执行 Ext JS 的 close 命令
+        driver.execute_script("""
+            var msgBox = Ext.ComponentQuery.query('messagebox')[0];
+            if (msgBox) {
+                msgBox.close();
+            }
+        """)
+        print("✅ 通过 JS 关闭提示框")
+        return True
+    except TimeoutException:
+        print("❌ 超时：未检测到 'successfully saved'")
+        return False
+    except Exception as e:
+        # print(f"⚠️ 意外错误: {e}")
+        return False
+
+
+def get_workday(
+    start_date: str, 
+    end_date: str, 
+    date_format: str = "%Y-%m-%d"
+) -> str:
+    start = datetime.strptime(start_date, date_format).date()
+    end = datetime.strptime(end_date, date_format).date()
+
+    if start > end:
+        start, end = end, start
+
+    delta_days = (end - start).days
+    next_day = start + timedelta(days=1)
+
+    # 情况1：间隔 < 7 天 → 直接返回 start + 1（不管是否工作日）
+    if delta_days < 7:
+        return next_day.strftime(date_format)
+
+    # 情况2：间隔 >= 7 天 → 从 start + 1 开始找第一个工作日
+    candidate = next_day
+    for _ in range(7):  # 最多查一周
+        if candidate.weekday() < 5 and candidate <= end:
+            return candidate.strftime(date_format)
+        candidate += timedelta(days=2)
+
+    # fallback
+    return next_day.strftime(date_format)
+
+
+def get_hours(value_str: str) -> str:
+    """
+    处理工时字符串，按规则返回格式化后的字符串：
+      - <1: 原样返回（去尾 .0）
+      - 1≤x<2: 返回 0.8*x，对齐到 0.5 倍数，去尾 .0
+      - ≥2: 在 [x/2, x] 内随机选一个 0.5 倍数，去尾 .0
+    
+    返回示例: "1", "1.5", "2", "0.8" → "1"
+    """
+    try:
+        x = float(value_str)
+    except (ValueError, TypeError):
+        raise ValueError(f"无效输入: '{value_str}' 不是有效数字")
+
+    # 将数值对齐到最近的 0.5 倍数
+    def round_to_half(num: float) -> float:
+        return round(num * 2) / 2
+
+    # 格式化：去掉不必要的 .0
+    def format_clean(num: float) -> str:
+        if num.is_integer():
+            return str(int(num))
+        else:
+            # 确保只有一位小数（0.5 的倍数最多一位）
+            return f"{num:.1f}"
+
+    if x < 1:
+        return format_clean(x)
+
+    elif 1 <= x < 2:
+        result = round_to_half(0.8 * x)
+        return format_clean(result)
+
+    else:  # x >= 2
+        low = x / 2
+        high = x
+
+        # 生成 [low, high] 范围内所有 0.5 步长的候选值
+        start = round_to_half(low)
+        end = round_to_half(high)
+
+        candidates = []
+        current = start
+        while current <= end + 1e-9:  # 避免浮点误差
+            candidates.append(current)
+            current += 0.5
+
+        if not candidates:
+            result = round_to_half(x)
+        else:
+            result = random.choice(candidates)
+
+        return format_clean(result)
+
+def has_too_many_hours_error(
+        driver:webdriver.Remote = driver, 
+        timeout:int=2):
+    """
+    检查是否出现 'Too many Hours' 错误弹窗
+    返回 True/False
+    """
+    try:
+        # 等待消息框出现（最多 timeout 秒）
+        WebDriverWait(driver, timeout).until(
+            EC.presence_of_element_located((By.XPATH, TOO_MANY_TIMES_MSG))
+        )
+        return True
+    except TimeoutException:
+        return False
+
+
+WO_NUMBER = "//div[not(div) and contains(., 'Records:')]"
 WORK_ORDER_TAG = "//span[normalize-space(.)='Work Orders' and not (./span)]"
 grid_filter = "//a[contains(@class, 'x-btn-gridfilter')]"              # 筛选按钮列表
 grid_filter_end_date = "(//a[contains(@class, 'x-btn-gridfilter')])[6]"     # 筛选按钮列表的第6个为结束日期的筛选
+FILTER_DATE_CONDITION = "(//a[contains(@class, 'x-btn-gridfilter')])[6]"
 date_triggers = 'div.x-form-date-trigger-gridfilter'                   # 日期图标，包含Schd.Start Date & Schd.End Date 2个                  
 DATE_TRIGGER_END_DATE = "(//div[contains(@class, 'x-form-date-trigger-gridfilter')])[2]"
+RUN_BTN = "//span[text()='Run' and contains(@class, 'x-btn-inner')]"
 VALUE_LOCATOR_LIST = [
     "//input[@name='schedstartdate' and @type='text']",
     "//input[@name='schedenddate' and @type='text']",
     "//input[@name='assignedto' and @type='text']",
+    "//input[@name='workorderstatus' and @role='combobox']",
     ]
+WORK_ORDER_STATUS = "//input[@name='workorderstatus' and @role='combobox']"
+ESTIMATED_HOURS = "//input[@name='esthrs']"
+# WORK_ORDER_STATUS_SELECT = "//input[@name='workorderstatus']/ancestor::div[contains(@class, 'x-form-item')]//div[contains(@class, 'x-form-arrow-trigger')]"
+WORK_ORDER_STATUS_SELECT = '//*[@id="uxcombobox-1416-trigger-picker"]'
 BOOK_LABOR_TAG = "//span[contains(@class, 'x-tab-inner') and text()='Book Labor']"
+RECORD_VIEW_TAG = "//span[contains(@class, 'x-tab-inner') and text()='Record View']"
 
 EMPLOYEE = "//input[@name='employee' and @type='text' and @role='textbox']"
 HOURS_WORKED = "//input[@name='hrswork' and @type='text']"
 DATE_WORKED = "//input[@name='datework' and @role='combobox']"
+
+TOO_MANY_TIMES_MSG = "//div[contains(@class, 'x-message-box')]//h6[contains(text(), 'Too many Hours')]"
+
+SAVE_LABOR_RECORD = "(//span[contains(@class, 'x-btn-icon-el') and contains(@class, 'toolbarSave')])[2]"
+SAVE_WORK_ORDER = "(//span[contains(@class, 'x-btn-icon-el') and contains(@class, 'toolbarSave')])[1]"
+
+SPLITTER_BAR = "//div[@role='separator' and @aria-orientation='vertical' and contains(@class, 'x-splitter') and contains(@class, 'x-splitter-vertical')]"
+
 if __name__ == "__main__":
     open_page()  # 打开页面
     click_tag(locator=WORK_ORDER_TAG,tag_title_compare='Work Order') # work orders 点击
     switch_to_iframe_and_check_grid()  #工单列表呈现
     # get_wo_total_number()            #显示工单总数
     print("🎉 环境 + iframe + 工单列表全部确认成功")
-    click_end_date_filter_condition()  #日期筛选
+    select_option(locator=FILTER_DATE_CONDITION)  #日期筛选条件
     # trigger_date_picker_and_select_date() #日期选为今天
     input_end_date() # 日期输入为今天
     # time.sleep(0.5)
-    input_assigned_person_name(name='YXL') #人员筛选
+    # input_assigned_person_name(name='HXSH') #人员筛选
+    input_assigned_person_name(name='HXSH') #人员筛选
     # time.sleep(0.5)
-    click_run_button() # 开始筛选
+    click_button(locator=RUN_BTN) # 开始筛选
 
     # section 2
     work_order_list = get_work_orders()
-    double_click_target_WO(target_table=work_order_list[0])
-    wo_start_date_str = get_work_order_item_information(locator=VALUE_LOCATOR_LIST[0]) # start date
-    wo_end_date_str = get_work_order_item_information(locator=VALUE_LOCATOR_LIST[1])   # end date
-    wo_assignto_str = get_work_order_item_information(locator=VALUE_LOCATOR_LIST[2])   # name
-    click_tag(locator=BOOK_LABOR_TAG,tag_title_compare='Book Labor') # book labor tag 点击
-    # Labor Detail fill
-    input_work_order_detail(locator=EMPLOYEE,text=wo_assignto_str)
-    input_work_order_detail(locator=HOURS_WORKED,text='0.5')
-    input_work_order_detail(locator=DATE_WORKED,text=wo_end_date_str)
+    for i, wo in enumerate(work_order_list):
+        print(f"🔧 正在处理第 {i+1} 个工单...")
+        double_click_elment(el=work_order_list[i])
+        wo_start_date_str = get_work_order_item_information(locator=VALUE_LOCATOR_LIST[0]) # start date
+        wo_end_date_str = get_work_order_item_information(locator=VALUE_LOCATOR_LIST[1])   # end date
+        wo_assignto_str = get_work_order_item_information(locator=VALUE_LOCATOR_LIST[2])   # name
+        wo_estimated_hours_str = get_work_order_item_information(locator=ESTIMATED_HOURS)   # work hours
+
+        act_workday = get_workday(wo_start_date_str,wo_end_date_str)
+        act_workhours = get_hours(wo_estimated_hours_str)
+
+        click_tag(locator=BOOK_LABOR_TAG,tag_title_compare='Book Labor') # book labor tag 点击
+        # Labor Detail fill
+        input_text(locator=EMPLOYEE,text=wo_assignto_str)
+        # input_text(locator=HOURS_WORKED,text='0.5')
+        input_text(locator=HOURS_WORKED,text=act_workhours)
+        # input_text(locator=DATE_WORKED,text=wo_start_date_str)
+        input_text(locator=DATE_WORKED,text=act_workday)
+        # save record
+        click_button(locator=SAVE_LABOR_RECORD)
+        # record view page
+        click_tag(locator=RECORD_VIEW_TAG,tag_title_compare='Record View')
+        # chage work order status   open -->completed
+        # input_text(locator=WORK_ORDER_STATUS,text='Completed')
+        # click_filter_condition(locator=WORK_ORDER_STATUS,condition='Completed')
+        safe_click_combobox_trigger(locator=WORK_ORDER_STATUS_SELECT)
+        select_combobox_option(option_text='Completed')
+        # save wo
+        click_button(locator=SAVE_WORK_ORDER)
+        wait_for_save_confirmation()    # feedback information
+        splitter_bar = get_an_element(locator=SPLITTER_BAR)
+        double_click_elment(el=splitter_bar)
+        print(f"✅ 第 {i+1} 个工单处理完成\n")
+    print("🎉 所有工单处理完毕！")
+
 
 
 
