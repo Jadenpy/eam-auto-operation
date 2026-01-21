@@ -1,4 +1,4 @@
-from ast import Return
+
 from selenium import webdriver
 from selenium.webdriver.edge.service import Service
 from selenium.webdriver.edge.options import Options
@@ -10,6 +10,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver import ActionChains
 from datetime import datetime, timedelta
 from selenium.webdriver.remote.webelement import WebElement
+from typing import List, Optional
 import time
 import random
 
@@ -23,24 +24,20 @@ service = Service(executable_path=r'C:\baiduDownload\msedgedriver.exe')
 driver = webdriver.Edge(service=service, options=options)
 wait = WebDriverWait(driver, 600)  # 国外服务器，时间一定要长
 
-
 def wait_ext_ready():
     wait.until(lambda d: d.execute_script(
         "return window.Ext && Ext.isReady === true"
     ))
-
 
 def wait_ajax_done():
     wait.until(lambda d: d.execute_script(
         "return Ext.Ajax.isLoading() === false"
     ))
 
-
 def wait_processing_done():
     wait.until(lambda d: d.execute_script("""
         return Ext.dom.Query.select('.x-mask-msg').length === 0;
     """))
-
 
 def open_page():
     driver.get(URL)
@@ -48,7 +45,6 @@ def open_page():
     wait_ext_ready()
     wait_ajax_done()
     print("✔ Start Center 页面加载完成")
-
 
 def click_tag(
     driver:webdriver.Remote = driver,
@@ -74,7 +70,6 @@ def click_tag(
     wait.until(lambda d: tag_title_compare in d.title)
     print(f"✔ 进入 {tag_title_compare} 页面")
 
-
 def switch_to_iframe_and_check_grid():
     iframe = wait.until(
         EC.presence_of_element_located((By.TAG_NAME, "iframe"))
@@ -96,7 +91,6 @@ def switch_to_iframe_and_check_grid():
 
     print("✔ 已进入包含工单列表的 iframe")
 
-
 def get_wo_total_number():
     import re
 
@@ -111,7 +105,6 @@ def get_wo_total_number():
     if match:
         total_count = int(match.group(1))
         print("Total records:", total_count)  # 输出: 130
-
 
 def select_option(
     driver: webdriver.Remote = driver,
@@ -271,7 +264,6 @@ def input_assigned_person_name(
     except Exception as e:
         print(f"❌ 设置分配人员失败: {e}")
 
-
 def click_button(
     driver: webdriver.Remote = driver,
     by:By = By.XPATH,
@@ -285,7 +277,6 @@ def click_button(
     wait_ext_ready()
     wait_ajax_done()
     print("✅ 已经点击按钮")
-
 
 def get_work_orders(
     driver: webdriver.Remote = driver,
@@ -322,9 +313,6 @@ def get_an_element(
         msg = f"⚠️ 定位元素时发生意外错误: ({by}, {locator}) - {str(e)}"
         print(msg)
         return None
-    
-    
-
 
 def double_click_elment(
     driver: webdriver.Remote = driver,
@@ -425,6 +413,7 @@ def safe_click_combobox_trigger(
     """
 
     # Step 1: 等待 loading 消失（关键！）
+    time.sleep(0.5)
     try:
         WebDriverWait(driver, 3).until_not(
             EC.presence_of_element_located((By.CSS_SELECTOR, ".x-mask-loading"))
@@ -496,35 +485,57 @@ def wait_for_save_confirmation(
         # print(f"⚠️ 意外错误: {e}")
         return False
 
-
 def get_workday(
-    start_date: str, 
-    end_date: str, 
+    start_date: str,
+    end_date: str,
+    exclude_dates: Optional[List[str]] = None,
     date_format: str = "%Y-%m-%d"
 ) -> str:
+    """
+    在 [start_date, end_date) 范围内随机返回一个日期字符串（不包含 end_date），
+    并排除 exclude_dates 中指定的日期。
+
+    参数:
+        start_date (str): 起始日期（包含）
+        end_date (str): 结束日期（不包含）
+        exclude_dates (List[str], optional): 要排除的日期列表（格式同 date_format）
+        date_format (str): 日期格式，默认 "%Y-%m-%d"
+
+    返回:
+        str: 随机选择的、未被排除的有效日期
+    """
     start = datetime.strptime(start_date, date_format).date()
     end = datetime.strptime(end_date, date_format).date()
 
+    # 确保 start <= end
     if start > end:
         start, end = end, start
 
-    delta_days = (end - start).days
-    next_day = start + timedelta(days=1)
+    # 构建排除集合（转为 date 对象，便于比较）
+    exclude_set = set()
+    if exclude_dates:
+        for d_str in exclude_dates:
+            try:
+                exclude_set.add(datetime.strptime(d_str, date_format).date())
+            except ValueError:
+                # 忽略格式错误的排除日期（或可抛出异常）
+                continue
 
-    # 情况1：间隔 < 7 天 → 直接返回 start + 1（不管是否工作日）
-    if delta_days < 7:
-        return next_day.strftime(date_format)
+    # 生成所有候选日期：[start, end)
+    candidates = []
+    current = start
+    while current < end:
+        if current not in exclude_set:
+            candidates.append(current)
+        current += timedelta(days=1)
 
-    # 情况2：间隔 >= 7 天 → 从 start + 1 开始找第一个工作日
-    candidate = next_day
-    for _ in range(7):  # 最多查一周
-        if candidate.weekday() < 5 and candidate <= end:
-            return candidate.strftime(date_format)
-        candidate += timedelta(days=2)
+    # 如果没有有效候选日期，回退到 start（或可抛异常）
+    if not candidates:
+        return start.strftime(date_format)
 
-    # fallback
-    return next_day.strftime(date_format)
-
+    # 随机选择一个
+    selected = random.choice(candidates)
+    return selected.strftime(date_format)
 
 def get_hours(value_str: str) -> str:
     """
@@ -618,12 +629,14 @@ WORK_ORDER_STATUS_SELECT = '//*[@id="uxcombobox-1416-trigger-picker"]'
 BOOK_LABOR_TAG = "//span[contains(@class, 'x-tab-inner') and text()='Book Labor']"
 RECORD_VIEW_TAG = "//span[contains(@class, 'x-tab-inner') and text()='Record View']"
 
+ACTIVITY = "//input[@name='booactivity']"
+
 EMPLOYEE = "//input[@name='employee' and @type='text' and @role='textbox']"
 HOURS_WORKED = "//input[@name='hrswork' and @type='text']"
 DATE_WORKED = "//input[@name='datework' and @role='combobox']"
 
 TOO_MANY_TIMES_MSG = "//div[contains(@class, 'x-message-box')]//h6[contains(text(), 'Too many Hours')]"
-
+OK_BTN_ON_MSG = "(//a[contains(@class, 'uft-id-ok') and @role='button'])[2]"
 SAVE_LABOR_RECORD = "(//span[contains(@class, 'x-btn-icon-el') and contains(@class, 'toolbarSave')])[2]"
 SAVE_WORK_ORDER = "(//span[contains(@class, 'x-btn-icon-el') and contains(@class, 'toolbarSave')])[1]"
 
@@ -640,7 +653,7 @@ if __name__ == "__main__":
     input_end_date() # 日期输入为今天
     # time.sleep(0.5)
     # input_assigned_person_name(name='HXSH') #人员筛选
-    input_assigned_person_name(name='HXSH') #人员筛选
+    input_assigned_person_name() #人员筛选
     # time.sleep(0.5)
     click_button(locator=RUN_BTN) # 开始筛选
 
@@ -653,32 +666,56 @@ if __name__ == "__main__":
         wo_end_date_str = get_work_order_item_information(locator=VALUE_LOCATOR_LIST[1])   # end date
         wo_assignto_str = get_work_order_item_information(locator=VALUE_LOCATOR_LIST[2])   # name
         wo_estimated_hours_str = get_work_order_item_information(locator=ESTIMATED_HOURS)   # work hours
+        if '' in (wo_estimated_hours_str, wo_assignto_str):
+            # go to 
+            splitter_bar = get_an_element(locator=SPLITTER_BAR)
+            double_click_elment(el=splitter_bar)
+            print(f"✅ 第 {i+1} 个工单处理中断，初始工时或者分配人员为空\n")
+            continue  
+        else:
+            act_workday = get_workday(wo_start_date_str,wo_end_date_str)
+            act_workhours = get_hours(wo_estimated_hours_str)
 
-        act_workday = get_workday(wo_start_date_str,wo_end_date_str)
-        act_workhours = get_hours(wo_estimated_hours_str)
+            click_tag(locator=BOOK_LABOR_TAG,tag_title_compare='Book Labor') # book labor tag 点击
+            # is activity filled?
+            activity = get_an_element(locator=ACTIVITY).get_attribute("value")
+            if activity == '':
+                # refill it to '10 - engineer' 
+                # go to 
+                splitter_bar = get_an_element(locator=SPLITTER_BAR)
+                double_click_elment(el=splitter_bar)
+                print(f"✅ 第 {i+1} 个工单处理中断，Activity为空\n")
+                continue 
+            # Labor Detail fill
+            input_text(locator=EMPLOYEE,text=wo_assignto_str)
+            # input_text(locator=HOURS_WORKED,text='0.5')
+            input_text(locator=HOURS_WORKED,text=act_workhours)
+            # input_text(locator=DATE_WORKED,text=wo_start_date_str)
+            input_text(locator=DATE_WORKED,text=act_workday)
+            if has_too_many_hours_error():
+                print('to many time ,please try again!')
+                # click ok btn on msg window
+                click_button(locator=OK_BTN_ON_MSG)
+                # reInput date
+                act_workday = get_workday(wo_start_date_str,wo_end_date_str,[act_workday])
+                input_text(locator=DATE_WORKED,text=act_workday)
+                print('reInput successful')
 
-        click_tag(locator=BOOK_LABOR_TAG,tag_title_compare='Book Labor') # book labor tag 点击
-        # Labor Detail fill
-        input_text(locator=EMPLOYEE,text=wo_assignto_str)
-        # input_text(locator=HOURS_WORKED,text='0.5')
-        input_text(locator=HOURS_WORKED,text=act_workhours)
-        # input_text(locator=DATE_WORKED,text=wo_start_date_str)
-        input_text(locator=DATE_WORKED,text=act_workday)
-        # save record
-        click_button(locator=SAVE_LABOR_RECORD)
-        # record view page
-        click_tag(locator=RECORD_VIEW_TAG,tag_title_compare='Record View')
-        # chage work order status   open -->completed
-        # input_text(locator=WORK_ORDER_STATUS,text='Completed')
-        # click_filter_condition(locator=WORK_ORDER_STATUS,condition='Completed')
-        safe_click_combobox_trigger(locator=WORK_ORDER_STATUS_SELECT)
-        select_combobox_option(option_text='Completed')
-        # save wo
-        click_button(locator=SAVE_WORK_ORDER)
-        wait_for_save_confirmation()    # feedback information
-        splitter_bar = get_an_element(locator=SPLITTER_BAR)
-        double_click_elment(el=splitter_bar)
-        print(f"✅ 第 {i+1} 个工单处理完成\n")
+            # save record
+            click_button(locator=SAVE_LABOR_RECORD)
+            # record view page
+            click_tag(locator=RECORD_VIEW_TAG,tag_title_compare='Record View')
+            # chage work order status   open -->completed
+            # input_text(locator=WORK_ORDER_STATUS,text='Completed')
+            # click_filter_condition(locator=WORK_ORDER_STATUS,condition='Completed')
+            safe_click_combobox_trigger(locator=WORK_ORDER_STATUS_SELECT)
+            select_combobox_option(option_text='Completed')
+            # save wo
+            click_button(locator=SAVE_WORK_ORDER)
+            wait_for_save_confirmation()    # feedback information
+            splitter_bar = get_an_element(locator=SPLITTER_BAR)
+            double_click_elment(el=splitter_bar)
+            print(f"✅ 第 {i+1} 个工单处理完成\n")
     print("🎉 所有工单处理完毕！")
 
 
