@@ -1,4 +1,6 @@
 from collections import defaultdict
+import subprocess
+
 
 class WorkHourTracker:
     def __init__(self):
@@ -44,4 +46,22 @@ class WorkHourTracker:
         return "\n".join(lines) if len(lines) > 1 else "📊 无记录"
 
 # 全局实例（可在模块中导出）
-hour_tracker = WorkHourTracker()
+# hour_tracker = WorkHourTracker()
+
+import subprocess
+
+def compress_pdf(input_path, output_path):
+    command = [
+        'gs',
+        '-sDEVICE=pdfwrite',
+        '-dCompatibilityLevel=1.4',
+        '-dPDFSETTINGS=/ebook',  # /screen, /ebook, /prepress
+        '-dNOPAUSE',
+        '-dQUIET',
+        '-dBATCH',
+        f'-sOutputFile={output_path}',
+        input_path
+    ]
+    subprocess.run(command)
+FILE_PATH = '.\ASI.pdf'
+compress_pdf(FILE_PATH, 'compressed_file.pdf')

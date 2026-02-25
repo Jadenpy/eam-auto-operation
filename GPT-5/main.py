@@ -19,9 +19,10 @@ URL = 'https://eu1.eam.hxgnsmartcloud.com/web/base/logindisp?tenant=KAUTEX_PRD'
 options = Options()
 options.add_argument("--start-maximized")
 options.add_experimental_option('detach',True)  #不自动关闭浏览器
-service = Service(executable_path=r'C:\baiduDownload\msedgedriver.exe')
+# service = Service(executable_path=r'C:\baiduDownload\msedgedriver.exe')
 
-driver = webdriver.Edge(service=service, options=options)
+# driver = webdriver.Edge(service=service, options=options)
+driver = webdriver.Edge(options=options)
 wait = WebDriverWait(driver, 600)  # 国外服务器，时间一定要长
 
 def wait_ext_ready():
@@ -324,6 +325,7 @@ def double_click_elment(
         ActionChains(driver).double_click(el).perform()
         wait_ext_ready()
         wait_ajax_done()
+        # time.sleep(1)
         print('双击元素执行')
 
 def get_work_order_item_information(
@@ -369,7 +371,7 @@ def input_text(
     # 触发 change 事件（必须！）
     driver.execute_script("arguments[0].dispatchEvent(new Event('change'))", el)
 
-    print("✅已经录入信息 ")
+    print(f"✅已经录入信息:{text} ")
 
 def select_combobox_option(
         driver:webdriver.Remote = driver, 
@@ -672,50 +674,51 @@ if __name__ == "__main__":
             double_click_elment(el=splitter_bar)
             print(f"✅ 第 {i+1} 个工单处理中断，初始工时或者分配人员为空\n")
             continue  
-        else:
-            act_workday = get_workday(wo_start_date_str,wo_end_date_str)
-            act_workhours = get_hours(wo_estimated_hours_str)
+        # else:
+        act_workday = get_workday(wo_start_date_str,wo_end_date_str)
+        act_workhours = get_hours(wo_estimated_hours_str)
 
-            click_tag(locator=BOOK_LABOR_TAG,tag_title_compare='Book Labor') # book labor tag 点击
-            # is activity filled?
-            activity = get_an_element(locator=ACTIVITY).get_attribute("value")
-            if activity == '':
-                # refill it to '10 - engineer' 
-                # go to 
-                splitter_bar = get_an_element(locator=SPLITTER_BAR)
-                double_click_elment(el=splitter_bar)
-                print(f"✅ 第 {i+1} 个工单处理中断，Activity为空\n")
-                continue 
-            # Labor Detail fill
-            input_text(locator=EMPLOYEE,text=wo_assignto_str)
-            # input_text(locator=HOURS_WORKED,text='0.5')
-            input_text(locator=HOURS_WORKED,text=act_workhours)
-            # input_text(locator=DATE_WORKED,text=wo_start_date_str)
-            input_text(locator=DATE_WORKED,text=act_workday)
-            if has_too_many_hours_error():
-                print('to many time ,please try again!')
-                # click ok btn on msg window
-                click_button(locator=OK_BTN_ON_MSG)
-                # reInput date
-                act_workday = get_workday(wo_start_date_str,wo_end_date_str,[act_workday])
-                input_text(locator=DATE_WORKED,text=act_workday)
-                print('reInput successful')
-
-            # save record
-            click_button(locator=SAVE_LABOR_RECORD)
-            # record view page
+        click_tag(locator=BOOK_LABOR_TAG,tag_title_compare='Book Labor') # book labor tag 点击
+        # is activity filled?
+        activity = get_an_element(locator=ACTIVITY).get_attribute("value")
+        if activity == '':
+            # refill it to '10 - engineer' 
+            # go to 
             click_tag(locator=RECORD_VIEW_TAG,tag_title_compare='Record View')
-            # chage work order status   open -->completed
-            # input_text(locator=WORK_ORDER_STATUS,text='Completed')
-            # click_filter_condition(locator=WORK_ORDER_STATUS,condition='Completed')
-            safe_click_combobox_trigger(locator=WORK_ORDER_STATUS_SELECT)
-            select_combobox_option(option_text='Completed')
-            # save wo
-            click_button(locator=SAVE_WORK_ORDER)
-            wait_for_save_confirmation()    # feedback information
             splitter_bar = get_an_element(locator=SPLITTER_BAR)
             double_click_elment(el=splitter_bar)
-            print(f"✅ 第 {i+1} 个工单处理完成\n")
+            print(f"✅ 第 {i+1} 个工单处理中断，Activity为空\n")
+            continue
+        # Labor Detail fill
+        input_text(locator=EMPLOYEE,text=wo_assignto_str)
+        # input_text(locator=HOURS_WORKED,text='0.5')
+        input_text(locator=HOURS_WORKED,text=act_workhours)
+        # input_text(locator=DATE_WORKED,text=wo_start_date_str)
+        input_text(locator=DATE_WORKED,text=act_workday)
+        if has_too_many_hours_error():
+            print('to many time ,please try again!')
+            # click ok btn on msg window
+            click_button(locator=OK_BTN_ON_MSG)
+            # reInput date
+            act_workday = get_workday(wo_start_date_str,wo_end_date_str,[act_workday])
+            input_text(locator=DATE_WORKED,text=act_workday)
+            print('reInput successful')
+
+        # save record
+        click_button(locator=SAVE_LABOR_RECORD)
+        # record view page
+        click_tag(locator=RECORD_VIEW_TAG,tag_title_compare='Record View')
+        # chage work order status   open -->completed
+        # input_text(locator=WORK_ORDER_STATUS,text='Completed')
+        # click_filter_condition(locator=WORK_ORDER_STATUS,condition='Completed')
+        safe_click_combobox_trigger(locator=WORK_ORDER_STATUS_SELECT)
+        select_combobox_option(option_text='Completed')
+        # save wo
+        click_button(locator=SAVE_WORK_ORDER)
+        wait_for_save_confirmation()    # feedback information
+        splitter_bar = get_an_element(locator=SPLITTER_BAR)
+        double_click_elment(el=splitter_bar)
+        print(f"✅ 第 {i+1} 个工单处理完成\n")
     print("🎉 所有工单处理完毕！")
 
 
